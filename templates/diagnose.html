@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Maize leaf analysis{% endblock %}
+{% block page_heading %}Maize leaf analysis{% endblock %}
+{% block content %}
+<section class="content-card">
+  <h2>Choose a maize leaf photo</h2>
+  <p>Use a clear photo of one maize leaf with the affected area near the centre. The image stays in your browser.</p>
+  <form id="leaf-analysis" data-assets="{{ url_for('static', filename='diagnosis/') }}">
+    <label for="leaf-photo">Leaf photo (JPEG, PNG, or WebP)</label>
+    <input id="leaf-photo" type="file" accept="image/jpeg,image/png,image/webp" required>
+    <button class="primary-button" type="submit" disabled>Analyse photo</button>
+  </form>
+  <noscript><p>Enable JavaScript to analyse a photo.</p></noscript>
+  <p id="analysis-status" role="status" aria-live="polite"></p>
+</section>
+<section class="content-card" id="analysis-result" hidden>
+  <h2 id="analysis-title"></h2>
+  <p id="analysis-score"></p>
+  <p id="analysis-advice"></p>
+  <p id="analysis-source-row" hidden><a id="analysis-source" rel="noopener">Read the disease guidance</a></p>
+  <p class="tiny-note">Use this photo result as a screening aid. Ask a local extension officer to confirm symptoms before treating a field.</p>
+</section>
+<p><a href="{{ url_for('farms.diseases_page') }}">Return to crop health tracking</a></p>
+<script defer src="{{ url_for('static', filename='diagnosis/ort.wasm.min.js') }}"></script>
+<script defer src="{{ url_for('static', filename='diagnosis/analysis.js') }}"></script>
+{% endblock %}

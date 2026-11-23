@@ -64,3 +64,17 @@ Set `SECRET_KEY` in `.env` to the generated value. Run:
 
 Open http://127.0.0.1:5000. To run the integration suite against a temporary
 SQLite file, use `python -m unittest -v` from the virtual environment.
+
+## Maize leaf analysis
+
+Farmers open Crop health tracking and choose **Analyse a maize leaf photo**.
+The browser runs MobileNetV2 with ONNX Runtime Web (1.22.0). No photo is sent
+to the server. The first analysis downloads the model and runtime.
+
+The ONNX export uses the Apache 2.0
+[PlantVillage MobileNetV2 checkpoint](https://huggingface.co/neghani/plantvillage-mobilenetv2/tree/d33601185b32cf05b3942661b8d84ffb86dc48ec).
+The model takes a centre-cropped 224 by 224 RGB tensor scaled to [-1, 1] and
+outputs 38 logits. The app reports only the four maize classes and declines
+predictions below 0.75 after the source checkpoint's temperature scaling.
+This threshold is a screening choice and has not been validated on Kenyan
+farms. Management guidance links to university extension references.

@@ -89,6 +89,8 @@ def create_app(config=None):
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
         )
+        if request.endpoint == "farms.diagnose":
+            response.headers["Content-Security-Policy"] += "; script-src 'self' 'wasm-unsafe-eval'"
         if request.is_secure and app.config["SESSION_COOKIE_SECURE"]:
             response.headers["Strict-Transport-Security"] = "max-age=31536000"
         if response.mimetype == "text/html":
