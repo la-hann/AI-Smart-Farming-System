@@ -58,15 +58,31 @@ function loadModel() {
 
 async function imageTensor(file) {
   let image;
+  let imageUrl;
   try {
-    image = await createImageBitmap(file);
+    if (typeof createImageBitmap === "function") {
+      try {
+        image = await createImageBitmap(file);
+      } catch {
+        // Try formats the browser can display even if bitmap decoding rejects them.
+      }
+    }
+    if (!image) {
+      imageUrl = URL.createObjectURL(file);
+      image = new Image();
+      image.src = imageUrl;
+      await image.decode();
+    }
   } catch {
+    if (imageUrl) URL.revokeObjectURL(imageUrl);
     throw new Error("The photo could not be opened. Try another JPEG, PNG, or WebP file.");
   }
   try {
-    const factor = resizeEdge / Math.min(image.width, image.height);
-    const width = Math.floor(image.width * factor);
-    const height = Math.floor(image.height * factor);
+    const sourceWidth = image.naturalWidth || image.width;
+    const sourceHeight = image.naturalHeight || image.height;
+    const factor = resizeEdge / Math.min(sourceWidth, sourceHeight);
+    const width = Math.floor(sourceWidth * factor);
+    const height = Math.floor(sourceHeight * factor);
     const canvas = document.createElement("canvas");
     canvas.width = canvas.height = size;
     const context = canvas.getContext("2d");
@@ -84,7 +100,8 @@ async function imageTensor(file) {
     }
     return new ort.Tensor("float32", values, [1, 3, size, size]);
   } finally {
-    image.close();
+    image.close?.();
+    if (imageUrl) URL.revokeObjectURL(imageUrl);
   }
 }
 
@@ -105,7 +122,7 @@ function showPrediction(logits) {
   result.hidden = false;
 }
 
-if (typeof ort === "undefined" || typeof createImageBitmap !== "function") {
+if (typeof ort === "undefined") {
   statusMessage.textContent = "The browser could not start leaf analysis. Reload the page or try an updated browser.";
 } else {
   button.disabled = false;

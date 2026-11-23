@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}AI Smart Farming{% endblock %}</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='farmer-tools') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='phone') }}">
 </head>
 <body>
 {% if g.user %}
@@ -11,6 +11,7 @@
   <aside class="sidebar">
     <a class="brand" href="{{ url_for('index') }}"><span class="brand-mark">SF</span><span><b>SMART FARMING</b><small>AI-DRIVEN PLATFORM</small></span></a>
     <div class="side-label">WORKSPACE</div>
+    <nav class="workspace-links" aria-label="Workspace">
     {% if g.user.is_admin %}
       <a class="nav-link {% if request.endpoint=='admin' %}active{% endif %}" href="{{ url_for('admin') }}">▦ &nbsp; Admin overview</a>
     {% else %}
@@ -26,6 +27,7 @@
       <a class="nav-link {% if request.endpoint=='farmer_tools.irrigation' %}active{% endif %}" href="{{ url_for('farmer_tools.irrigation') }}">Irrigation</a>
     {% endif %}
       <a class="nav-link {% if request.endpoint=='diagnose' %}active{% endif %}" href="{{ url_for('diagnose') }}">Crop disease scanner</a>
+    </nav>
     <div class="sidebar-bottom"><div class="user-chip"><span class="avatar">{{ g.user.name[:1]|upper }}</span><span><b>{{ g.user.name }}</b><small>{{ ('Administrator' if g.user.is_admin else 'Farmer') }}</small></span></div>
       <form method="post" action="{{ url_for('logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="logout-button">↪ &nbsp; Sign out</button></form></div>
   </aside>

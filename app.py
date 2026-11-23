@@ -76,7 +76,7 @@ def create_app(config=None):
             "default-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
         )
         if request.endpoint == "diagnose":
-            response.headers["Content-Security-Policy"] += "; script-src 'self' 'wasm-unsafe-eval'"
+            response.headers["Content-Security-Policy"] += "; script-src 'self' 'wasm-unsafe-eval'; img-src 'self' blob:"
         if request.is_secure and app.config["SESSION_COOKIE_SECURE"]:
             response.headers["Strict-Transport-Security"] = "max-age=31536000"
         if response.mimetype == "text/html":
