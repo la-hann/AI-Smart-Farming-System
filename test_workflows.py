@@ -133,7 +133,8 @@ class FarmWorkflows(unittest.TestCase):
         self.assertNotIn(b'href="/diseases/diagnose"', dashboard)
         self.assertNotIn(b'href="/inputs"', dashboard)
         self.assertNotIn(b'href="/chatbot"', dashboard)
-        self.assertIn(b"AI recommendation &amp; Chatbot", dashboard)
+        self.assertIn(b"AI Recommendations", dashboard)
+        self.assertIn(b"Farm Alerts", dashboard)
         self.assertEqual(client.get("/diseases/diagnose").location, "/diseases#crop-disease-scanner")
         health_page = client.get("/diseases")
         self.assertIn(b"Crop disease scanner", health_page.data)
@@ -146,6 +147,7 @@ class FarmWorkflows(unittest.TestCase):
         self.assertEqual(client.get("/inputs").location, "/farms#farm-inputs")
         farm_page = client.get("/farms").data
         self.assertIn(b"Add a farm", farm_page)
+        self.assertIn(b"Farm input records", farm_page)
         self.assertIn(b"Record a farm input", farm_page)
         crop_id = re.search(rb'<option value="(\d+)">Beans', farm_page)[1].decode()
         input_response = self.submit(client, "/inputs", {
@@ -221,6 +223,7 @@ class FarmWorkflows(unittest.TestCase):
         with patch.dict("os.environ", {"GEMINI_API_KEY": ""}):
             self.assertEqual(client.get("/chatbot").location, "/recommendations#ai-chatbot")
             ai_page = client.get("/recommendations").data
+            self.assertIn(b"<title>AI Recommendations</title>", ai_page)
             self.assertIn(b"Next irrigation estimate", ai_page)
             self.assertIn(b"AI Chatbot", ai_page)
             response = self.submit(client, "/chatbot", {"question": "When should I water my maize?"}, "/recommendations")

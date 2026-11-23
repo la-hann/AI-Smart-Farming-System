@@ -83,17 +83,17 @@ farms. Management guidance links to university extension references.
 ## Farmer dashboards
 
 **Farm management** contains farm records and the farm input log.
-**AI recommendation & Chatbot** contains both the water estimate and the
+**AI Recommendations** contains both the water estimate and the
 farming question form.
 
 - **Irrigation** records litres or cubic metres by crop and date. The total
   includes all matching records, and the history shows the latest 50 entries.
-- **AI recommendation** uses a saved plot size and application efficiency,
+- **AI Recommendations** uses a saved plot size and application efficiency,
   three days of Open-Meteo reference evapotranspiration and forecast rain,
   the crop and growth stage, and irrigation logged today. Water figures are
   planning estimates, with crop coefficients informed by
   [FAO-56](https://www.fao.org/4/X0490E/x0490e0b.htm).
-- **Alerts** shows the selected farm's forecast and crop-check reminders
+- **Farm Alerts** shows the selected farm's forecast and crop-check reminders
   every 3, 7, or 14 days, depending on crop stage and health. Reminders are
   displayed in the app.
 - **AI Chatbot** answers common questions from the built-in guide. For

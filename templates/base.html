@@ -14,19 +14,16 @@
     <div class="side-label">WORKSPACE</div>
     <nav class="workspace-links" aria-label="Workspace">
     {% if g.user.is_admin %}
-      <a class="nav-link {% if request.endpoint=='admin' %}active{% endif %}" href="{{ url_for('admin') }}">▦ &nbsp; Admin overview</a>
+      <a class="nav-link {% if request.endpoint in ('admin', 'diagnose') %}active{% endif %}" href="{{ url_for('admin') }}">▦ &nbsp; Admin overview</a>
     {% else %}
       <a class="nav-link {% if request.endpoint=='farms.dashboard' %}active{% endif %}" href="{{ url_for('farms.dashboard') }}">▦ &nbsp; Dashboard</a>
       <a class="nav-link {% if request.endpoint in ('farms.farm_list', 'farms.inputs_page') %}active{% endif %}" href="{{ url_for('farms.farm_list') }}">⌂ &nbsp; Farm management</a>
       <a class="nav-link {% if request.endpoint=='farms.crops_page' %}active{% endif %}" href="{{ url_for('farms.crops_page') }}">♧ &nbsp; Crop management</a>
       <a class="nav-link {% if request.endpoint=='farms.diseases_page' %}active{% endif %}" href="{{ url_for('farms.diseases_page') }}">✚ &nbsp; Crop health tracking</a>
       <a class="nav-link {% if request.endpoint=='farms.weather_page' %}active{% endif %}" href="{{ url_for('farms.weather_page') }}">☼ &nbsp; Weather</a>
-      <a class="nav-link {% if request.endpoint in ('farmer_tools.recommendations', 'farmer_tools.chatbot') %}active{% endif %}" href="{{ url_for('farmer_tools.recommendations') }}">AI recommendation &amp; Chatbot</a>
-      <a class="nav-link {% if request.endpoint=='farmer_tools.alerts' %}active{% endif %}" href="{{ url_for('farmer_tools.alerts') }}">Alerts</a>
+      <a class="nav-link {% if request.endpoint in ('farmer_tools.recommendations', 'farmer_tools.chatbot') %}active{% endif %}" href="{{ url_for('farmer_tools.recommendations') }}">AI Recommendations</a>
+      <a class="nav-link {% if request.endpoint=='farmer_tools.alerts' %}active{% endif %}" href="{{ url_for('farmer_tools.alerts') }}">Farm Alerts</a>
       <a class="nav-link {% if request.endpoint=='farmer_tools.irrigation' %}active{% endif %}" href="{{ url_for('farmer_tools.irrigation') }}">Irrigation</a>
-    {% endif %}
-    {% if g.user.is_admin %}
-      <a class="nav-link {% if request.endpoint=='diagnose' %}active{% endif %}" href="{{ url_for('diagnose') }}">Crop disease scanner</a>
     {% endif %}
     </nav>
     <div class="sidebar-bottom"><div class="user-chip"><span class="avatar">{{ g.user.name[:1]|upper }}</span><span><b>{{ g.user.name }}</b><small>{{ ('Administrator' if g.user.is_admin else 'Farmer') }}</small></span></div>
