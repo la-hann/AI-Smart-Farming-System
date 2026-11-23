@@ -1,5 +1,6 @@
 const form = document.querySelector("#leaf-analysis");
 const photo = document.querySelector("#leaf-photo");
+const camera = document.querySelector("#leaf-camera");
 const button = form.querySelector("button");
 const statusMessage = document.querySelector("#analysis-status");
 const result = document.querySelector("#analysis-result");
@@ -13,7 +14,6 @@ const size = 224;
 const resizeEdge = 256;
 const temperature = 0.8845188130635788;
 const minimumScore = 0.75;
-const supportedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 const maximumFileSize = 12 * 1024 * 1024;
 const maize = {
   7: {
@@ -111,16 +111,24 @@ if (typeof ort === "undefined" || typeof createImageBitmap !== "function") {
   button.disabled = false;
 }
 
+function selectPhoto(otherInput) {
+  otherInput.value = "";
+  result.hidden = true;
+  statusMessage.textContent = "";
+}
+photo.addEventListener("change", () => selectPhoto(camera));
+camera.addEventListener("change", () => selectPhoto(photo));
+
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   result.hidden = true;
-  const file = photo.files[0];
-  if (!file || !supportedTypes.has(file.type) || file.size > maximumFileSize) {
+  const file = camera.files[0] || photo.files[0];
+  if (!file || file.size > maximumFileSize) {
     statusMessage.textContent = "Choose a JPEG, PNG, or WebP image smaller than 12 MB.";
     return;
   }
 
-  button.disabled = photo.disabled = true;
+  button.disabled = photo.disabled = camera.disabled = true;
   statusMessage.textContent = "Analysing photo. The first run downloads the model.";
   let input;
   let output;
@@ -138,6 +146,6 @@ form.addEventListener("submit", async (event) => {
   } finally {
     input?.dispose();
     output?.dispose();
-    button.disabled = photo.disabled = false;
+    button.disabled = photo.disabled = camera.disabled = false;
   }
 });

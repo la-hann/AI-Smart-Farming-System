@@ -21,6 +21,7 @@
       <a class="nav-link {% if request.endpoint=='farms.diseases_page' %}active{% endif %}" href="{{ url_for('farms.diseases_page') }}">✚ &nbsp; Crop health tracking</a>
       <a class="nav-link {% if request.endpoint=='farms.weather_page' %}active{% endif %}" href="{{ url_for('farms.weather_page') }}">☼ &nbsp; Weather</a>
     {% endif %}
+      <a class="nav-link {% if request.endpoint=='diagnose' %}active{% endif %}" href="{{ url_for('diagnose') }}">Crop disease scanner</a>
     <div class="sidebar-bottom"><div class="user-chip"><span class="avatar">{{ g.user.name[:1]|upper }}</span><span><b>{{ g.user.name }}</b><small>{{ ('Administrator' if g.user.is_admin else 'Farmer') }}</small></span></div>
       <form method="post" action="{{ url_for('logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="logout-button">↪ &nbsp; Sign out</button></form></div>
   </aside>

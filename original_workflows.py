@@ -161,11 +161,6 @@ def diseases_page():
                            cases=case_rows(g.user.id), today=date.today())
 
 
-@farms.get("/diseases/diagnose")
-def diagnose():
-    return render_template("diagnose.html")
-
-
 @farms.post("/diseases/<int:case_id>/update")
 def update_case(case_id):
     try:

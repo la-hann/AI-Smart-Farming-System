@@ -106,6 +106,8 @@ class FarmWorkflows(unittest.TestCase):
             "email": "admin@example.com", "password": "test-password-1234", "role": "admin",
         }).status_code, 303)
         self.assertIn(b"Recently registered farmers", client.get("/admin").data)
+        self.assertIn(b"Crop disease scanner", client.get("/admin").data)
+        self.assertIn(b'capture="environment"', client.get("/diseases/diagnose").data)
         self.assertEqual(client.get("/dashboard").status_code, 403)
         self.assertEqual(client.get("/healthz").json, {"status": "ok"})
 
@@ -126,6 +128,9 @@ class FarmWorkflows(unittest.TestCase):
         farm = self.add_farm(client, "Meadow")
         farm_id = farm.rsplit("/", 1)[-1]
         self.assertIn(b"Welcome to your farming workspace", client.get("/dashboard").data)
+        self.assertIn(b"Crop disease scanner", client.get("/dashboard").data)
+        self.assertEqual(client.get("/diseases/diagnose").status_code, 200)
+        self.assertEqual(self.app.test_client().get("/diseases/diagnose").status_code, 302)
         self.assertEqual(self.submit(client, "/crops", {
             "farm_id": farm_id, "crop_name": "Beans", "growth_stage": "Maturity",
             "health_status": "Under treatment", "notes": "Optional planting date",

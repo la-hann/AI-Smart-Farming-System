@@ -89,7 +89,7 @@ def create_app(config=None):
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
         )
-        if request.endpoint == "farms.diagnose":
+        if request.endpoint == "diagnose":
             response.headers["Content-Security-Policy"] += "; script-src 'self' 'wasm-unsafe-eval'"
         if request.is_secure and app.config["SESSION_COOKIE_SECURE"]:
             response.headers["Strict-Transport-Security"] = "max-age=31536000"
@@ -111,6 +111,12 @@ def create_app(config=None):
         if not g.user:
             return redirect(url_for("login"))
         return redirect(url_for("admin" if g.user.is_admin else "farms.dashboard"))
+
+    @app.get("/diseases/diagnose")
+    def diagnose():
+        if not g.user:
+            return redirect(url_for("login"))
+        return render_template("diagnose.html")
 
     @app.route("/login", methods=["GET", "POST"])
     def login():
