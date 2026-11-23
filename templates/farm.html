@@ -3,7 +3,7 @@
 {% block context %}<a href="{{ url_for('farms.farm_list') }}">All farms</a>{% endblock %}
 {% block content %}
 <div class="panel section-heading">
-  <div><strong>{{ farm.location }}</strong>{% if farm.area %} &middot; {{ farm.area }} ha{% endif %}
+  <div><strong>{{ farm.location }}</strong>{% if farm.area %} &middot; {{ farm.area }} acres{% endif %}
   {% if farm.soil %} &middot; {{ farm.soil }} soil{% endif %}
   {% if farm.irrigation %} &middot; {{ farm.irrigation }} irrigation{% endif %}
   {% if farm.water_source %} &middot; {{ farm.water_source }}{% endif %}</div>

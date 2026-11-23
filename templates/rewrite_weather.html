@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block context %}<a href="{{ url_for('farms.detail', farm_id=farm.id) }}">{{ farm.name }}</a>{% endblock %}
+{% block content %}
+{% if forecasts %}
+<section class="panel">
+  <h2>{{ place.name }}{% if place.country %}, {{ place.country }}{% endif %}</h2>
+  <div class="table-scroll"><table>
+    <thead><tr><th scope="col">Date</th><th scope="col">Low</th><th scope="col">High</th><th scope="col">Rain chance</th></tr></thead>
+    <tbody>{% for day, low, high, rain in forecasts %}
+    <tr><th scope="row">{{ day }}</th><td>{% if low is none %}Unavailable{% else %}{{ low }} &deg;C{% endif %}</td>
+      <td>{% if high is none %}Unavailable{% else %}{{ high }} &deg;C{% endif %}</td><td>{{ 'Unavailable' if rain is none else rain ~ '%' }}</td></tr>
+    {% endfor %}</tbody>
+  </table></div>
+  <p class="muted">Forecast data from <a href="https://open-meteo.com/">Open-Meteo</a>.</p>
+</section>
+{% endif %}
+{% endblock %}

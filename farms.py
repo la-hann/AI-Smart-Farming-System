@@ -1,5 +1,4 @@
 from datetime import date
-from decimal import Decimal, InvalidOperation
 
 import requests
 from flask import Blueprint, abort, flash, g, redirect, render_template, request, url_for
@@ -72,45 +71,8 @@ def crop_selection(farm_id):
 def save(record, message, endpoint, **params):
     db.session.add(record)
     db.session.commit()
-    flash(message)
+    flash(message, "success")
     return redirect(url_for(endpoint, **params), 303)
-
-
-@farms.get("/dashboard")
-def dashboard():
-    records = owned_farms()
-    owned = db.select(Farm.id).filter_by(owner_id=g.user.id)
-    counts = {"Farms": len(records)}
-    counts["Crops"] = db.session.scalar(
-        db.select(db.func.count()).select_from(Crop).where(Crop.farm_id.in_(owned))
-    )
-    counts["Open health cases"] = db.session.scalar(
-        db.select(db.func.count()).select_from(HealthCase)
-        .where(HealthCase.farm_id.in_(owned), HealthCase.status != "Recovered")
-    )
-    return render_template("dashboard.html", title="Farm dashboard", counts=counts, farms=records)
-
-
-@farms.route("/farms", methods=["GET", "POST"])
-def farm_list():
-    if request.method == "GET":
-        return render_template("farms.html", title="Farms", farms=owned_farms())
-    try:
-        raw_area = field("area", 13)
-        area = Decimal(raw_area) if raw_area else None
-        if area is not None and (
-            not area.is_finite() or not 0 < area < 10**10 or area != round(area, 2)
-        ):
-            raise ValueError("Enter an area greater than zero with up to two decimal places.")
-        farm = Farm(
-            owner_id=g.user.id, name=field("name", 100, True), location=field("location", 180, True),
-            area=area, soil=field("soil", 80), irrigation=field("irrigation", 80),
-            water_source=field("water_source", 80),
-        )
-    except (ValueError, InvalidOperation) as exc:
-        error = str(exc) if isinstance(exc, ValueError) else "Enter a valid farm area."
-        return render_template("farms.html", title="Farms", farms=owned_farms(), error=error), 422
-    return save(farm, "Farm added.", "farms.farm_list")
 
 
 def farm_page(farm, error=None):
@@ -162,7 +124,7 @@ def edit_crop(farm_id, crop_id):
             stage = choice("stage", STAGES)
             health = choice("health", HEALTH)
             harvest = date_field("harvest_on")
-            if harvest and harvest < crop.planted_on:
+            if harvest and crop.planted_on and harvest < crop.planted_on:
                 raise ValueError("Expected harvest must be on or after planting.")
         except ValueError as exc:
             error = str(exc)
@@ -269,5 +231,5 @@ def weather(farm_id):
     except (requests.RequestException, ValueError, KeyError, TypeError):
         error = "Weather is temporarily unavailable. Try again later."
     return render_template(
-        "weather.html", title="Weather", farm=farm, place=place, forecasts=forecasts, error=error,
+        "rewrite_weather.html", title="Weather", farm=farm, place=place, forecasts=forecasts, error=error,
     )

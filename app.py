@@ -1,4 +1,5 @@
 from hashlib import sha256
+from datetime import date
 import os
 import re
 from pathlib import Path
@@ -6,7 +7,7 @@ from time import time
 
 import click
 from dotenv import load_dotenv
-from flask import Flask, abort, g, redirect, render_template, request, session, url_for
+from flask import Flask, abort, flash, g, redirect, render_template, request, session, url_for
 from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
 from sqlalchemy import delete, event, text
@@ -17,6 +18,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from farms import farms
 from models import Crop, Farm, HealthCase, LoginAttempt, User, db
+from original_workflows import case_rows
 
 
 DUMMY_PASSWORD_HASH = generate_password_hash("unused-placeholder")
@@ -24,7 +26,7 @@ EMAIL = re.compile(r"[^\s@]+@[^\s@]+\.[^\s@]+")
 
 
 def credentials(email, password):
-    return len(email) <= 254 and EMAIL.fullmatch(email) and 12 <= len(password) <= 128
+    return len(email) <= 254 and EMAIL.fullmatch(email) and 8 <= len(password) <= 128
 
 
 def permit_login(ip):
@@ -71,6 +73,10 @@ def create_app(config=None):
     CSRFProtect(app)
     app.register_blueprint(farms)
 
+    @app.context_processor
+    def interface_date():
+        return {"now_date": date.today().strftime("%d %B %Y")}
+
     @app.before_request
     def current_user():
         user_id = session.get("user_id")
@@ -109,17 +115,20 @@ def create_app(config=None):
         if g.user:
             return redirect(url_for("index"))
         if request.method == "GET":
-            return render_template("auth.html", title="Sign in")
+            return render_template("login.html")
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
         if not permit_login(request.remote_addr or "unknown"):
-            return render_template("auth.html", title="Sign in", error="Too many attempts. Try again shortly."), 429
+            flash("Too many attempts. Try again shortly.", "error")
+            return render_template("login.html"), 429
         user = db.session.scalar(db.select(User).filter_by(email=email)) if credentials(email, password) else None
         valid_password = check_password_hash(
             user.password_hash if user else DUMMY_PASSWORD_HASH, password[:128]
         )
-        if not user or not valid_password:
-            return render_template("auth.html", title="Sign in", error="Email or password is incorrect."), 401
+        role = request.form.get("role", "farmer")
+        if not user or not valid_password or role != ("admin" if user.is_admin else "farmer"):
+            flash("The details do not match an account with the selected role.", "error")
+            return render_template("login.html"), 401
         session.clear()
         session["user_id"] = user.id
         return redirect(url_for("index"), 303)
@@ -129,20 +138,22 @@ def create_app(config=None):
         if g.user:
             return redirect(url_for("index"))
         if request.method == "GET":
-            return render_template("auth.html", title="Create account", register=True)
+            return render_template("signup.html")
         email = request.form.get("email", "").strip().lower()
-        name = request.form.get("name", "").strip()
+        name = request.form.get("full_name", "").strip()
+        phone = request.form.get("phone", "").strip()
         password = request.form.get("password", "")
-        if not 1 <= len(name) <= 100 or not credentials(email, password):
-            return render_template(
-                "auth.html", title="Create account", register=True,
-                error="Enter your name, a valid email and a password of 12 to 128 characters.",
-            ), 422
-        db.session.add(User(name=name, email=email, password_hash=generate_password_hash(password)))
+        if not 1 <= len(name) <= 100 or not credentials(email, password) or len(phone) > 25:
+            flash("Enter your name, a valid email, and a password of 8 to 128 characters.", "error")
+            return render_template("signup.html"), 422
+        db.session.add(User(name=name, email=email, phone=phone or None, password_hash=generate_password_hash(password)))
         try:
             db.session.commit()
         except IntegrityError:
             db.session.rollback()
+            flash("That email is already registered.", "error")
+            return render_template("signup.html"), 409
+        flash("Farmer account created. You can now sign in.", "success")
         return redirect(url_for("login"), 303)
 
     @app.post("/logout")
@@ -159,13 +170,15 @@ def create_app(config=None):
         counts = {
             label: db.session.scalar(db.select(db.func.count()).select_from(model).filter(*filters))
             for label, model, filters in (
-                ("Farmers", User, (User.is_admin.is_(False),)),
-                ("Farms", Farm, ()),
-                ("Crops", Crop, ()),
-                ("Open health cases", HealthCase, (HealthCase.status != "Recovered",)),
+                ("farmers", User, (User.is_admin.is_(False),)),
+                ("farms", Farm, ()),
+                ("crops", Crop, ()),
+                ("active_cases", HealthCase, (HealthCase.status != "Recovered",)),
             )
         }
-        return render_template("dashboard.html", title="Administration", counts=counts)
+        recent = db.session.execute(db.select(User.name.label("full_name"), User.email, User.created_at)
+                                    .where(User.is_admin.is_(False)).order_by(User.id.desc()).limit(12)).all()
+        return render_template("admin.html", stats=counts, recent=recent, cases=case_rows(limit=10))
 
     @app.cli.command("create-admin")
     @click.option("--email", prompt=True)
@@ -174,7 +187,7 @@ def create_app(config=None):
     def create_admin(email, name, password):
         email, name = email.strip().lower(), name.strip()
         if not 1 <= len(name) <= 100 or not credentials(email, password):
-            raise click.ClickException("Enter a valid name, email and password of 12 to 128 characters.")
+            raise click.ClickException("Enter a valid name, email and password of 8 to 128 characters.")
         db.session.add(User(name=name, email=email, password_hash=generate_password_hash(password), is_admin=True))
         try:
             db.session.commit()

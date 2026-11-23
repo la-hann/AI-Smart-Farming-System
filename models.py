@@ -12,6 +12,8 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(254), unique=True, nullable=False)
+    phone = db.Column(db.String(25))
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     password_hash = db.Column(db.String(255), nullable=False)
     is_admin = db.Column(db.Boolean, nullable=False, default=False)
 
@@ -38,8 +40,9 @@ class Crop(db.Model):
     farm_id = db.Column(db.ForeignKey("farms.id"), nullable=False, index=True)
     name = db.Column(db.String(100), nullable=False)
     variety = db.Column(db.String(100))
-    planted_on = db.Column(db.Date, nullable=False)
+    planted_on = db.Column(db.Date)
     harvest_on = db.Column(db.Date)
+    notes = db.Column(db.Text)
     stage = db.Column(db.String(32), nullable=False)
     health = db.Column(db.String(32), nullable=False)
 

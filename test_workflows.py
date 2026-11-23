@@ -8,7 +8,7 @@ from unittest.mock import Mock, patch
 from flask_migrate import upgrade
 
 from app import create_app
-from models import db
+from models import Farm, db
 
 
 class FarmWorkflows(unittest.TestCase):
@@ -37,16 +37,18 @@ class FarmWorkflows(unittest.TestCase):
         client = self.app.test_client()
         credentials = {"email": email, "password": "test-password-1234"}
         self.assertEqual(self.submit(client, "/signup", {
-            **credentials, "name": email, "is_admin": "true",
+            **credentials, "full_name": email, "is_admin": "true",
         }).status_code, 303)
         self.assertEqual(self.submit(client, "/login", credentials).status_code, 303)
         return client
 
     def add_farm(self, client, name):
-        response = self.submit(client, "/farms", {"name": name, "location": "Nairobi", "area": "1.5"})
+        response = self.submit(client, "/farms", {"farm_name": name, "location": "Nairobi", "farm_size": "1.5"})
         self.assertEqual(response.status_code, 303)
-        page = client.get("/farms").data
-        return re.search(rb'href="(/farms/\d+)">' + name.encode(), page)[1].decode()
+        self.assertIn(name.encode(), client.get("/farms").data)
+        with self.app.app_context():
+            farm_id = db.session.scalar(db.select(Farm.id).filter_by(name=name))
+        return f"/farms/{farm_id}"
 
     def test_farm_crop_health_and_authorization(self):
         first = self.register("farmer1@example.com")
@@ -101,9 +103,9 @@ class FarmWorkflows(unittest.TestCase):
         self.assertEqual(command.exit_code, 0, command.output)
         client = self.app.test_client()
         self.assertEqual(self.submit(client, "/login", {
-            "email": "admin@example.com", "password": "test-password-1234",
+            "email": "admin@example.com", "password": "test-password-1234", "role": "admin",
         }).status_code, 303)
-        self.assertEqual(client.get("/admin").status_code, 200)
+        self.assertIn(b"Recently registered farmers", client.get("/admin").data)
         self.assertEqual(client.get("/dashboard").status_code, 403)
         self.assertEqual(client.get("/healthz").json, {"status": "ok"})
 
@@ -118,3 +120,27 @@ class FarmWorkflows(unittest.TestCase):
             limited = blocked_client.post("/login", data={"csrf_token": token},
                                           environ_overrides={"REMOTE_ADDR": "192.0.2.5"})
         self.assertEqual(limited.status_code, 429)
+
+    def test_original_navigation_and_forms(self):
+        client = self.register("original-workflow@example.com")
+        farm = self.add_farm(client, "Meadow")
+        farm_id = farm.rsplit("/", 1)[-1]
+        self.assertIn(b"Welcome to your farming workspace", client.get("/dashboard").data)
+        self.assertEqual(self.submit(client, "/crops", {
+            "farm_id": farm_id, "crop_name": "Beans", "growth_stage": "Maturity",
+            "health_status": "Under treatment", "notes": "Optional planting date",
+        }).status_code, 303)
+        crop_id = re.search(rb'<option value="(\d+)">Beans', client.get("/inputs").data)[1].decode()
+        self.assertEqual(self.submit(client, "/inputs", {
+            "farm_id": farm_id, "crop_id": crop_id, "input_type": "Seeds", "input_date": "2025-02-01",
+        }).status_code, 303)
+        self.assertEqual(self.submit(client, "/diseases", {
+            "farm_id": farm_id, "crop_id": crop_id, "issue_name": "Leaf spots",
+            "reported_date": date.today().isoformat(),
+        }).status_code, 303)
+        health = client.get("/diseases").data
+        update = re.search(rb'action="(/diseases/\d+/update)"', health)[1].decode()
+        self.assertEqual(self.submit(client, update, {"status": "Recovered"}, "/diseases").status_code, 303)
+        self.assertIn(b"Healthy", client.get("/crops").data)
+        self.assertIn(b"Recovered:", client.get("/diseases").data)
+        self.assertIn(b"Check weather for a farm", client.get("/weather").data)

@@ -92,14 +92,19 @@ def run_migrations_online():
     connectable = get_engine()
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection,
-            target_metadata=get_metadata(),
-            **conf_args
-        )
-
-        with context.begin_transaction():
-            context.run_migrations()
+        raw = connection.connection.driver_connection
+        raw.execute("PRAGMA foreign_keys=OFF")
+        try:
+            connection.exec_driver_sql("BEGIN IMMEDIATE")
+            context.configure(connection=connection, target_metadata=get_metadata(), **conf_args)
+            with context.begin_transaction():
+                context.run_migrations()
+            if connection.exec_driver_sql("PRAGMA foreign_key_check").first():
+                raise RuntimeError("The migration would leave invalid database references.")
+            connection.commit()
+        finally:
+            connection.rollback()
+            raw.execute("PRAGMA foreign_keys=ON")
 
 
 if context.is_offline_mode():
