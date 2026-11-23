@@ -192,16 +192,24 @@ class FarmWorkflows(unittest.TestCase):
         outsider = self.register("tools-outsider@example.com")
         farm = self.add_farm(client, "Waterfield")
         farm_id = farm.rsplit("/", 1)[-1]
+        target = f"farm:{farm_id}"
+        today = local_today()
+        details = {"target": target, "water_amount": "600", "unit": "L", "applied_on": today.isoformat()}
+        self.assertIn(b"Save irrigation", client.get("/irrigation").data)
+        saved = self.submit(client, "/irrigation", details)
+        self.assertEqual(saved.status_code, 303)
+        self.assertIn(b"600 L", client.get(saved.location).data)
+        self.assertEqual(self.submit(outsider, "/irrigation", details).status_code, 404)
+        self.assertNotIn(b"600 L", outsider.get("/irrigation").data)
         self.assertEqual(self.submit(client, "/crops", {
             "farm_id": farm_id, "crop_name": "Maize", "growth_stage": "Flowering",
             "health_status": "Healthy",
         }).status_code, 303)
         with self.app.app_context():
             crop_id = db.session.scalar(db.select(Crop.id).filter_by(farm_id=int(farm_id)))
-        today = local_today()
         entry = {"crop_id": crop_id, "water_amount": "2.5", "unit": "m3", "applied_on": today.isoformat()}
         self.assertEqual(self.submit(client, "/irrigation", entry).status_code, 303)
-        self.assertIn(b"2,500 L", client.get("/irrigation").data)
+        self.assertIn(b"3,100 L", client.get("/irrigation").data)
         self.assertNotIn(b"2,500 L", outsider.get("/irrigation").data)
         self.assertEqual(self.submit(outsider, "/irrigation", entry).status_code, 404)
         self.assertEqual(outsider.get(f"/recommendations?crop_id={crop_id}&area_acres=0.5").status_code, 404)

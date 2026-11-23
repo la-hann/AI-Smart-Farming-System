@@ -86,7 +86,7 @@ farms. Management guidance links to university extension references.
 **AI Recommendations** contains both the water estimate and the
 farming question form.
 
-- **Irrigation** records litres or cubic metres by crop and date. The total
+- **Irrigation** records litres or cubic metres by farm or crop and date. The total
   includes all matching records, and the history shows the latest 50 entries.
 - **AI Recommendations** uses a saved plot size and application efficiency,
   three days of Open-Meteo reference evapotranspiration and forecast rain,

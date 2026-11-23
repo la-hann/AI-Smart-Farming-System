@@ -10,7 +10,7 @@ from flask import Blueprint, abort, flash, g, redirect, render_template, request
 from sqlalchemy.dialects.sqlite import insert
 
 from farming_chat import chat_context
-from farms import date_field, farmer_required, field, owned_farms, save
+from farms import date_field, farmer_required, field, owned_farm, owned_farms, save
 from models import Crop, CropCheck, Farm, IrrigationEntry, IrrigationPlan, db
 
 
@@ -151,12 +151,28 @@ def weather_alerts(forecast):
     return alerts
 
 
+def irrigation_target(value):
+    kind, _, identifier = value.partition(":")
+    if kind == "crop":
+        return owned_crop(identifier)
+    if kind == "farm":
+        return None, owned_farm(record_id(identifier))
+    abort(404)
+
+
 @tools.route("/irrigation", methods=["GET", "POST"])
 def irrigation():
     today = local_today()
+    selected = request.args.get("target") or ""
+    legacy_crop = request.values.get("crop_id")
+    if legacy_crop and not selected:
+        selected = f"crop:{legacy_crop}"
     if request.method == "POST":
-        crop, _ = owned_crop(request.form.get("crop_id"))
+        selected = request.form.get("target") or selected
         try:
+            if not selected:
+                raise ValueError("Choose a farm or crop.")
+            crop, farm = irrigation_target(selected)
             volume = decimal_field("water_amount", 10000000, 3)
             unit = request.form.get("unit")
             if unit not in ("L", "m3"):
@@ -167,26 +183,30 @@ def irrigation():
         except ValueError as exc:
             flash(str(exc), "error")
         else:
-            return save(IrrigationEntry(crop_id=crop.id, applied_on=applied,
-                                        litres=volume * (1000 if unit == "m3" else 1)),
-                        "Irrigation recorded.", "farmer_tools.irrigation", crop_id=crop.id)
-    owner = db.select(IrrigationEntry).join(Crop).join(Farm).where(Farm.owner_id == g.user.id)
-    selected = request.args.get("crop_id")
-    estimate = weather_error = None
+            entry = IrrigationEntry(farm_id=farm.id, crop_id=crop.id if crop else None, applied_on=applied,
+                                    litres=volume * (1000 if unit == "m3" else 1))
+            return save(entry, "Irrigation recorded.", "farmer_tools.irrigation", target=selected)
+    owner = (db.select(IrrigationEntry).join(Farm, IrrigationEntry.farm_id == Farm.id)
+             .outerjoin(Crop, IrrigationEntry.crop_id == Crop.id).where(Farm.owner_id == g.user.id))
+    crop = estimate = weather_error = None
     if selected:
-        crop, farm = owned_crop(selected)
-        owner = owner.where(IrrigationEntry.crop_id == crop.id)
-        plan = db.session.get(IrrigationPlan, crop.id)
-        if plan:
-            forecast, weather_error = weather_for(farm, today)
-            estimate = plan_result(crop, plan, forecast, today)
+        crop, farm = irrigation_target(selected)
+        if crop:
+            owner = owner.where(IrrigationEntry.crop_id == crop.id)
+            plan = db.session.get(IrrigationPlan, crop.id)
+            if plan:
+                forecast, weather_error = weather_for(farm, today)
+                estimate = plan_result(crop, plan, forecast, today)
+        else:
+            owner = owner.where(IrrigationEntry.farm_id == farm.id)
     total = db.session.scalar(db.select(db.func.sum(owner.subquery().c.litres))) or 0
     entries = db.session.execute(
         owner.with_only_columns(IrrigationEntry, Crop.name, Farm.name)
         .order_by(IrrigationEntry.applied_on.desc(), IrrigationEntry.id.desc()).limit(50)
     ).all()
-    return render_template("irrigation.html", crops=owned_crops(), entries=entries, total=total,
-                           selected=selected, today=today, estimate=estimate, weather_error=weather_error)
+    return render_template("irrigation.html", farms=owned_farms(), crops=owned_crops(), entries=entries,
+                           total=total, selected=selected, selected_crop=crop, today=today,
+                           estimate=estimate, weather_error=weather_error)
 
 
 def plan_values(farm):

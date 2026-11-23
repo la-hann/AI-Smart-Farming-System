@@ -114,11 +114,16 @@ class IrrigationEntry(db.Model):
     __tablename__ = "irrigation_entries"
 
     id = db.Column(db.Integer, primary_key=True)
-    crop_id = db.Column(db.ForeignKey("crops.id"), nullable=False, index=True)
+    farm_id = db.Column(db.ForeignKey("farms.id"), nullable=False, index=True)
+    crop_id = db.Column(db.Integer, index=True)
     applied_on = db.Column(db.Date, nullable=False)
     litres = db.Column(db.Numeric(14, 3), nullable=False)
 
-    __table_args__ = (CheckConstraint("litres > 0", name="positive_irrigation_volume"),)
+    __table_args__ = (
+        ForeignKeyConstraint(("crop_id", "farm_id"), ("crops.id", "crops.farm_id"),
+                             name="irrigation_crop_farm"),
+        CheckConstraint("litres > 0", name="positive_irrigation_volume"),
+    )
 
 
 class CropCheck(db.Model):
