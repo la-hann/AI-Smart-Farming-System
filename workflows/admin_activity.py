@@ -3,7 +3,7 @@ from datetime import date
 
 from sqlalchemy import func, literal, union_all
 
-from farmer_tools import local_today
+from .farmer_tools import local_today
 from models import Crop, Farm, HealthCase, HealthUpdate, InputLog, IrrigationEntry, User, db
 
 

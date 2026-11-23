@@ -2,7 +2,7 @@ import os
 import re
 
 import requests
-from request_limits import permit_request
+from .request_limits import permit_request
 
 GUIDES = (
     (r"irrigat\w*|water\w*|drought|wilting|drip",

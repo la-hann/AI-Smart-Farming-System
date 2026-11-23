@@ -4,6 +4,19 @@ A Flask and Jinja app for farmer accounts, farm and crop records, input logs,
 manual crop health tracking, and weather forecasts. SQLite stores shared data
 in `instance/smart_farming.sqlite3` on the same host as the app.
 
+## Project structure
+
+| Path | Responsibility |
+| --- | --- |
+| `app.py` | Flask application setup, sign-in, administrator access, and route registration |
+| `workflows/farms.py` and `workflows/original_workflows.py` | Farm, crop, input, and health records, with farmer ownership checks |
+| `workflows/farmer_tools.py` and `workflows/weather_guidance.py` | Irrigation logs and estimates, forecast actions, and watering alerts |
+| `workflows/farming_chat.py` | Built-in farming guide and optional Gemini integration |
+| `workflows/admin_activity.py` | Monthly farm activity calculations |
+| `models.py` and `migrations/` | SQLite models and versioned schema updates |
+| `templates/` and `static/` | AgriSense pages and styles, phone layout, and the browser-based MobileNetV2 scanner |
+| `test_workflows.py` | Integration tests for authentication, record access, and farming workflows |
+
 ## PythonAnywhere Free
 
 Create a free Beginner account. Upload and extract the deployment ZIP into

@@ -13,12 +13,12 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from farms import farms
+from workflows.farms import farms
 from models import Crop, Farm, HealthCase, User, db
-from original_workflows import case_rows
-from admin_activity import ACTIVITY_LABELS, farm_activity
-from farmer_tools import tools as farmer_tools
-from request_limits import permit_request
+from workflows.original_workflows import case_rows
+from workflows.admin_activity import ACTIVITY_LABELS, farm_activity
+from workflows.farmer_tools import tools as farmer_tools
+from workflows.request_limits import permit_request
 
 
 DUMMY_PASSWORD_HASH = generate_password_hash("unused-placeholder")

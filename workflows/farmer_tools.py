@@ -9,10 +9,10 @@ import requests
 from flask import Blueprint, abort, flash, g, redirect, render_template, request, url_for
 from sqlalchemy.dialects.sqlite import insert
 
-from farming_chat import chat_context
-from farms import date_field, farmer_required, field, owned_farm, owned_farms, save
+from .farming_chat import chat_context
+from .farms import date_field, farmer_required, field, owned_farm, owned_farms, save
 from models import Crop, CropCheck, Farm, IrrigationEntry, IrrigationPlan, db
-from weather_guidance import watering_check
+from .weather_guidance import watering_check
 
 
 tools = Blueprint("farmer_tools", __name__)

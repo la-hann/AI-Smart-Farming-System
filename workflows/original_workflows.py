@@ -5,9 +5,9 @@ import requests
 from flask import abort, flash, g, redirect, render_template, request, url_for
 from sqlalchemy import text
 
-from farms import farms, owned_farm, field, date_field, choice, save
+from .farms import farms, owned_farm, field, date_field, choice, save
 from models import CASE_STATUSES, Crop, Farm, HealthCase, HealthUpdate, InputLog, User, db
-from weather_guidance import forecast_guidance
+from .weather_guidance import forecast_guidance
 
 
 def farm_rows():
