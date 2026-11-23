@@ -150,6 +150,26 @@ class FarmWorkflows(unittest.TestCase):
         self.assertIn(b"Healthy", client.get("/crops").data)
         self.assertIn(b"Recovered:", client.get("/diseases").data)
         self.assertIn(b"Check weather for a farm", client.get("/weather").data)
+        geocoding, forecast = Mock(), Mock()
+        geocoding.json.return_value = {"results": [{"name": "Nairobi", "latitude": -1.29, "longitude": 36.82}]}
+        forecast.json.return_value = {
+            "current": {"temperature_2m": 22, "relative_humidity_2m": 65},
+            "daily": {
+                "time": ["2026-01-01", "2026-01-02", "2026-01-03"],
+                "temperature_2m_max": [25, 25, 26],
+                "temperature_2m_min": [15, 16, 17],
+                "precipitation_probability_max": [30, 40, 20],
+            },
+        }
+        with patch("original_workflows.requests.get", side_effect=[geocoding, forecast]):
+            weather = self.submit(client, "/weather", {"farm_id": farm_id})
+        self.assertIn(b"Three-day outlook", weather.data)
+        self.assertIn(b"Nairobi", weather.data)
+        missing = client.get("/page-does-not-exist")
+        self.assertEqual(missing.status_code, 404)
+        self.assertIn(b"Return to the portal", missing.data)
+        self.assertEqual(self.submit(client, "/logout", {}, "/dashboard").status_code, 303)
+        self.assertIn(b"You have signed out.", client.get("/login").data)
 
     def test_farmer_tools(self):
         client = self.register("tools-farmer@example.com")

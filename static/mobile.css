@@ -1,0 +1,34 @@
+@media(min-width:761px){.sidebar{overflow-y:auto}}
+
+@media (max-width: 760px) {
+  .workspace-links {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px 8px;
+  }
+  .workspace-links .nav-link {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    margin: 0;
+    font-size: 13px;
+    overflow-wrap: anywhere;
+  }
+  .sidebar-bottom { gap: 12px; }
+  .user-chip { min-width: 0; overflow-wrap: anywhere; }
+  .avatar { flex: 0 0 34px; }
+  .logout-button { white-space: nowrap; min-height: 44px; }
+  .main-area, .content-card, .stat-card, .table-wrap, .form-grid > div { min-width: 0; }
+  .content-card, .stat-card, .message, .auth-card { overflow-wrap: anywhere; }
+  .auth-content { flex-direction: column; }
+  input, select, textarea,
+  .auth-card form input, .auth-card form select { font-size: 16px; }
+  input, select, .primary-button, .small-button { min-height: 44px; }
+  .primary-button { white-space: normal; }
+  .table-wrap { max-width: 100%; }
+  .section-heading { gap: 8px 12px; flex-wrap: wrap; }
+}
+
+@media (max-width: 350px) {
+  .stat-grid { grid-template-columns: 1fr; }
+}

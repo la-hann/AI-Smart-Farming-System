@@ -5,13 +5,14 @@ import requests
 from flask import abort, flash, g, redirect, render_template, request, url_for
 from sqlalchemy import text
 
-from farms import farms, owned_farm, owned_farms, field, date_field, choice, save
+from farms import farms, owned_farm, field, date_field, choice, save
 from models import CASE_STATUSES, Crop, Farm, HealthCase, HealthUpdate, InputLog, User, db
 
 
 def farm_rows():
+    records = db.session.scalars(db.select(Farm).filter_by(owner_id=g.user.id).order_by(Farm.id.desc()))
     return [dict(farm_id=f.id, farm_name=f.name, farm_size=f.area, location=f.location,
-                 soil_type=f.soil, irrigation_method=f.irrigation) for f in owned_farms()]
+                 soil_type=f.soil, irrigation_method=f.irrigation) for f in records]
 
 
 def crop_rows():
@@ -83,19 +84,19 @@ def farm_list():
         raw_area = field("farm_size", 13)
         area = Decimal(raw_area) if raw_area else None
         if area is not None and (
-            not area.is_finite() or not 0 < area < 10**10 or area != round(area, 2)
+            not area.is_finite() or not 0 <= area < 10**10 or area != round(area, 2)
         ):
-            raise ValueError("Enter an area greater than zero with up to two decimal places.")
+            raise ValueError("Enter a non-negative area with up to two decimal places.")
         farm = Farm(
             owner_id=g.user.id, name=field("farm_name", 100, True), location=field("location", 180, True),
-            area=area, soil=field("soil_type", 80), irrigation=field("irrigation_method", 80),
+            area=area or None, soil=field("soil_type", 80), irrigation=field("irrigation_method", 80),
             water_source=field("water_source", 80),
         )
     except (ValueError, InvalidOperation) as exc:
         error = str(exc) if isinstance(exc, ValueError) else "Enter a valid farm area."
         flash(error, "error")
         return render_template("farms.html", farms=farm_rows()), 422
-    return save(farm, "Farm added.", "farms.farm_list")
+    return save(farm, "Farm saved.", "farms.farm_list")
 
 
 @farms.route("/crops", methods=["GET", "POST"])

@@ -3,10 +3,11 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}AI Smart Farming{% endblock %}</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='phone') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='agrisense') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='mobile.css', v='1') }}">
 </head>
 <body>
-{% if g.user %}
+{% if g.user and not standalone %}
 <div class="app-shell">
   <aside class="sidebar">
     <a class="brand" href="{{ url_for('index') }}"><span class="brand-mark">SF</span><span><b>SMART FARMING</b><small>AI-DRIVEN PLATFORM</small></span></a>

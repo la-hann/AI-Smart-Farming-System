@@ -153,6 +153,7 @@ def create_app(config=None):
     @app.post("/logout")
     def logout():
         session.clear()
+        flash("You have signed out.", "success")
         return redirect(url_for("login"), 303)
 
     @app.get("/admin")
@@ -190,15 +191,17 @@ def create_app(config=None):
             raise click.ClickException("That email is already registered.") from exc
         click.echo("Administrator created.")
 
+    @app.errorhandler(404)
+    def not_found(_error):
+        return render_template("404.html", standalone=True), 404
+
     @app.errorhandler(400)
     @app.errorhandler(403)
-    @app.errorhandler(404)
     @app.errorhandler(413)
     def request_error(error):
         messages = {
             400: "The form could not be submitted. Reload the page and try again.",
             403: "You do not have access to this page.",
-            404: "This page could not be found.",
             413: "The submitted form is too large.",
         }
         return render_template("error.html", title="Request unavailable", message=messages[error.code]), error.code
