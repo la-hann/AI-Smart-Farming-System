@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Farmer Dashboard | AI Smart Farming{% endblock %}
+{% block content %}
+<div class="form-card dashboard-card">
+  <p class="eyebrow green">FARMER DASHBOARD</p>
+  <h2>Welcome, {{ farmer_name }}.</h2>
+  <p class="muted">Your farmer account is active. This is the secure landing page after signing in to the AI-Driven Smart Farming System.</p>
+  <div class="dashboard-grid">
+    <article class="dashboard-tile"><span class="tile-icon">🌱</span><h3>Crop Management</h3><p>Crop monitoring and disease detection will be connected here.</p></article>
+    <article class="dashboard-tile"><span class="tile-icon">☀️</span><h3>Weather & Conditions</h3><p>Local weather information will appear in this section.</p></article>
+    <article class="dashboard-tile"><span class="tile-icon">💧</span><h3>AI Recommendations</h3><p>Irrigation and farm guidance will appear here.</p></article>
+    <article class="dashboard-tile"><span class="tile-icon">🔔</span><h3>Farm Alerts</h3><p>Important farm notifications will appear here.</p></article>
+  </div>
+  <div class="notice"><strong>Account access confirmed</strong><p>You have successfully registered and signed in. This recovered ZIP contains the authentication starter only; the original AI model and full farming modules were not inside it.</p></div>
+  <form method="post" action="{{ url_for('logout') }}">
+    <button type="submit" class="secondary-button">Log out</button>
+  </form>
+</div>
+{% endblock %}
