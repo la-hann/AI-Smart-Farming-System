@@ -2,13 +2,7 @@ import os
 import re
 
 import requests
-from flask import Blueprint, g, render_template, request
-
-from farms import farmer_required
 from request_limits import permit_request
-
-chat = Blueprint("farming_chat", __name__)
-chat.before_request(farmer_required)
 
 GUIDES = (
     (r"irrigat\w*|water\w*|drought|wilting|drip",
@@ -59,18 +53,17 @@ def generated_answer(question, key):
                      if not part.get("thought")).strip()
 
 
-@chat.route("/chatbot", methods=["GET", "POST"])
-def chatbot():
+def chat_context(question=None, user_id=None):
     key = os.environ.get("GEMINI_API_KEY")
-    answer = question = error = None
+    answer = error = None
     generated = False
-    if request.method == "POST":
-        question = request.form.get("question", "").strip()
+    if question is not None:
+        question = question.strip()
         if not 3 <= len(question) <= 600:
             error = "Enter a farming question between 3 and 600 characters."
         else:
             if key:
-                if permit_request("farming-chat", g.user.id, 8):
+                if permit_request("farming-chat", user_id, 8):
                     try:
                         answer = generated_answer(question, key)
                     except (requests.RequestException, ValueError, TypeError, KeyError):
@@ -80,5 +73,4 @@ def chatbot():
                 answer = guide_for(question)
                 if not answer:
                     error = "The built-in guide could not match that question. Try a topic such as watering, pests, soil, planting, or harvest."
-    return render_template("chatbot.html", question=question, answer=answer, error=error,
-                           generated=generated, configured=bool(key))
+    return dict(question=question, answer=answer, error=error, generated=generated, configured=bool(key))

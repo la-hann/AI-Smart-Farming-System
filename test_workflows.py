@@ -129,17 +129,31 @@ class FarmWorkflows(unittest.TestCase):
         farm = self.add_farm(client, "Meadow")
         farm_id = farm.rsplit("/", 1)[-1]
         self.assertIn(b"Welcome to your farming workspace", client.get("/dashboard").data)
-        self.assertIn(b"Crop disease scanner", client.get("/dashboard").data)
-        self.assertEqual(client.get("/diseases/diagnose").status_code, 200)
+        dashboard = client.get("/dashboard").data
+        self.assertNotIn(b'href="/diseases/diagnose"', dashboard)
+        self.assertNotIn(b'href="/inputs"', dashboard)
+        self.assertNotIn(b'href="/chatbot"', dashboard)
+        self.assertIn(b"AI recommendation &amp; Chatbot", dashboard)
+        self.assertEqual(client.get("/diseases/diagnose").location, "/diseases#crop-disease-scanner")
+        health_page = client.get("/diseases")
+        self.assertIn(b"Crop disease scanner", health_page.data)
+        self.assertIn("'wasm-unsafe-eval'", health_page.headers["Content-Security-Policy"])
         self.assertEqual(self.app.test_client().get("/diseases/diagnose").status_code, 302)
         self.assertEqual(self.submit(client, "/crops", {
             "farm_id": farm_id, "crop_name": "Beans", "growth_stage": "Maturity",
             "health_status": "Under treatment", "notes": "Optional planting date",
         }).status_code, 303)
-        crop_id = re.search(rb'<option value="(\d+)">Beans', client.get("/inputs").data)[1].decode()
-        self.assertEqual(self.submit(client, "/inputs", {
+        self.assertEqual(client.get("/inputs").location, "/farms#farm-inputs")
+        farm_page = client.get("/farms").data
+        self.assertIn(b"Add a farm", farm_page)
+        self.assertIn(b"Record a farm input", farm_page)
+        crop_id = re.search(rb'<option value="(\d+)">Beans', farm_page)[1].decode()
+        input_response = self.submit(client, "/inputs", {
             "farm_id": farm_id, "crop_id": crop_id, "input_type": "Seeds", "input_date": "2025-02-01",
-        }).status_code, 303)
+        }, "/farms")
+        self.assertEqual(input_response.status_code, 303)
+        self.assertEqual(input_response.location, "/farms#farm-inputs")
+        self.assertIn(b"Seeds", client.get("/farms").data)
         self.assertEqual(self.submit(client, "/diseases", {
             "farm_id": farm_id, "crop_id": crop_id, "issue_name": "Leaf spots",
             "reported_date": date.today().isoformat(),
@@ -205,10 +219,15 @@ class FarmWorkflows(unittest.TestCase):
                           client.get(f"/alerts?farm_id={farm_id}").data)
             self.assertEqual(self.submit(outsider, f"/alerts/{crop_id}/checked", {}, "/alerts").status_code, 404)
         with patch.dict("os.environ", {"GEMINI_API_KEY": ""}):
-            response = self.submit(client, "/chatbot", {"question": "When should I water my maize?"})
+            self.assertEqual(client.get("/chatbot").location, "/recommendations#ai-chatbot")
+            ai_page = client.get("/recommendations").data
+            self.assertIn(b"Next irrigation estimate", ai_page)
+            self.assertIn(b"AI Chatbot", ai_page)
+            response = self.submit(client, "/chatbot", {"question": "When should I water my maize?"}, "/recommendations")
             self.assertIn(b"Built-in farming guide", response.data)
+            self.assertIn(b'action="/recommendations#ai-recommendation"', response.data)
         with patch.dict("os.environ", {"GEMINI_API_KEY": "test-key"}):
             with patch("farming_chat.generated_answer", return_value="Inspect three plants.") as generate:
-                response = self.submit(client, "/chatbot", {"question": "How should I scout crops?"})
+                response = self.submit(client, "/chatbot", {"question": "How should I scout crops?"}, "/recommendations")
                 self.assertIn(b"AI answer", response.data)
                 generate.assert_called_once_with("How should I scout crops?", "test-key")

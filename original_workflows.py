@@ -79,7 +79,7 @@ def dashboard():
 @farms.route("/farms", methods=["GET", "POST"])
 def farm_list():
     if request.method == "GET":
-        return render_template("farms.html", farms=farm_rows())
+        return farm_dashboard()
     try:
         raw_area = field("farm_size", 13)
         area = Decimal(raw_area) if raw_area else None
@@ -95,7 +95,7 @@ def farm_list():
     except (ValueError, InvalidOperation) as exc:
         error = str(exc) if isinstance(exc, ValueError) else "Enter a valid farm area."
         flash(error, "error")
-        return render_template("farms.html", farms=farm_rows()), 422
+        return farm_dashboard(), 422
     return save(farm, "Farm saved.", "farms.farm_list")
 
 
@@ -124,6 +124,8 @@ def crops_page():
 
 @farms.route("/inputs", methods=["GET", "POST"])
 def inputs_page():
+    if request.method == "GET":
+        return redirect(url_for("farms.farm_list", _anchor="farm-inputs"))
     if request.method == "POST":
         try:
             farm = submitted_farm()
@@ -135,13 +137,17 @@ def inputs_page():
         except ValueError as exc:
             flash(str(exc), "error")
         else:
-            return save(record, "Farm input recorded.", "farms.inputs_page")
+            return save(record, "Farm input recorded.", "farms.farm_list", _anchor="farm-inputs")
+    return farm_dashboard(), 422
+
+
+def farm_dashboard():
     statement = (db.select(InputLog, Farm.name, Crop.name).join(Farm, InputLog.farm_id == Farm.id)
                  .outerjoin(Crop, InputLog.crop_id == Crop.id).where(Farm.owner_id == g.user.id)
                  .order_by(InputLog.applied_on.desc(), InputLog.id.desc()))
     logs = [dict(input_date=i.applied_on, farm_name=f, crop_name=c, input_type=i.category,
                  product_name=i.product, quantity=i.quantity) for i, f, c in db.session.execute(statement)]
-    return render_template("inputs.html", farms=farm_rows(), crops=crop_rows(), logs=logs, today=date.today())
+    return render_template("farms.html", farms=farm_rows(), crops=crop_rows(), logs=logs, today=date.today())
 
 
 @farms.route("/diseases", methods=["GET", "POST"])

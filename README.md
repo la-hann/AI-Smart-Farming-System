@@ -67,7 +67,8 @@ SQLite file, use `python -m unittest -v` from the virtual environment.
 
 ## Maize leaf analysis
 
-Farmers open Crop health tracking and choose **Analyse a maize leaf photo**.
+Farmers open **Crop health tracking** and choose **Analyse a maize leaf photo**
+inside that dashboard.
 The browser runs MobileNetV2 with ONNX Runtime Web (1.22.0). No photo is sent
 to the server. The first analysis downloads the model and runtime.
 
@@ -80,6 +81,10 @@ This threshold is a screening choice and has not been validated on Kenyan
 farms. Management guidance links to university extension references.
 
 ## Farmer dashboards
+
+**Farm management** contains farm records and the farm input log.
+**AI recommendation & Chatbot** contains both the water estimate and the
+farming question form.
 
 - **Irrigation** records litres or cubic metres by crop and date. The total
   includes all matching records, and the history shows the latest 50 entries.

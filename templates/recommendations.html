@@ -1,13 +1,14 @@
 {% extends "base.html" %}
 {% from "crop_options.html" import options %}
-{% block title %}AI recommendation{% endblock %}
-{% block page_heading %}AI recommendation{% endblock %}
+{% block title %}AI recommendation & Chatbot{% endblock %}
+{% block page_heading %}AI recommendation & Chatbot{% endblock %}
 {% block content %}
-<section class="content-card">
+<p><a class="text-link" href="#ai-chatbot">AI Chatbot</a></p>
+<section class="content-card" id="ai-recommendation">
   <h2>Next irrigation estimate</h2>
   <p>Estimate additional water over three days using the crop stage, farm forecast, plot size, and water logged today.</p>
   {% if crops %}
-  <form method="post" class="form-grid">
+  <form method="post" action="{{ url_for('farmer_tools.recommendations', _anchor='ai-recommendation') }}" class="form-grid">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="full"><label for="plan-crop">Crop and farm</label><select name="crop_id" id="plan-crop" required>{{ options(crops, selected) }}</select></div>
     <div><label for="plan-area">Irrigated crop plot area (acres)</label><input type="number" min="0.001" max="100000" step="0.001" id="plan-area" name="area_acres" value="{{ acres }}" required></div>
@@ -40,4 +41,5 @@
   <p><a href="{{ url_for('farmer_tools.irrigation', crop_id=crop.id) }}">Record water used</a></p>
 </section>
 {% endif %}
+{% include "sections/farming_chat.html" %}
 {% endblock %}

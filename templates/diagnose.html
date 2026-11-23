@@ -2,31 +2,6 @@
 {% block title %}Crop disease scanner{% endblock %}
 {% block page_heading %}Crop disease scanner{% endblock %}
 {% block content %}
-<section class="content-card">
-  <h2>Choose a maize leaf photo</h2>
-  <p>Use a clear photo of one maize leaf with the affected area near the centre. The image stays in your browser.</p>
-  <form id="leaf-analysis" data-assets="{{ url_for('static', filename='diagnosis/') }}">
-    <label for="leaf-camera">Take a photo on your phone</label>
-    <input id="leaf-camera" type="file" accept="image/*" capture="environment">
-    <label for="leaf-photo">Or choose a photo (JPEG, PNG, or WebP)</label>
-    <input id="leaf-photo" type="file" accept="image/jpeg,image/png,image/webp">
-    <button class="primary-button" type="submit" disabled>Scan photo</button>
-  </form>
-  <noscript><p>Enable JavaScript to analyse a photo.</p></noscript>
-  <p id="analysis-status" role="status" aria-live="polite"></p>
-</section>
-<section class="content-card" id="analysis-result" hidden>
-  <h2 id="analysis-title"></h2>
-  <p id="analysis-score"></p>
-  <p id="analysis-advice"></p>
-  <p id="analysis-source-row" hidden><a id="analysis-source" rel="noopener">Read the disease guidance</a></p>
-  <p class="tiny-note">Use this photo result as a screening aid. Ask a local extension officer to confirm symptoms before treating a field.</p>
-</section>
-{% if g.user.is_admin %}
+{% include "sections/disease_scanner.html" %}
 <p><a href="{{ url_for('admin') }}">Return to administrator overview</a></p>
-{% else %}
-<p><a href="{{ url_for('farms.diseases_page') }}">Return to crop health tracking</a></p>
-{% endif %}
-<script defer src="{{ url_for('static', filename='diagnosis/ort.wasm.min.js') }}"></script>
-<script defer src="{{ url_for('static', filename='diagnosis/analysis.js', v='phone') }}"></script>
 {% endblock %}

@@ -1,0 +1,23 @@
+<section id="ai-chatbot" aria-label="AI Chatbot">
+<section class="content-card">
+  <h2>AI Chatbot</h2>
+  {% if chat.error %}<p class="message error" role="alert">{{ chat.error }}</p>{% endif %}
+  {% if chat.configured %}
+  <p>Include the crop and growth stage. Questions may be sent to Gemini. Leave out names, contact details, and other personal information.</p>
+  {% else %}
+  <p>The built-in guide covers watering, pests, soil, planting, weather, and harvesting. Open-ended AI answers are currently unavailable.</p>
+  {% endif %}
+  <form method="post" action="{{ url_for('farmer_tools.chatbot', crop_id=selected, _anchor='ai-chatbot') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="question">Your question</label>
+    <textarea id="question" name="question" minlength="3" maxlength="600" rows="4" required placeholder="How can I tell if my maize needs water?">{{ chat.question or '' }}</textarea>
+    <button class="primary-button">Ask</button>
+  </form>
+</section>
+{% if chat.answer %}
+<section class="content-card" aria-live="polite">
+  <h2>{{ 'AI answer' if chat.generated else 'Built-in farming guide' }}</h2>
+  {% for paragraph in chat.answer.split('\n') if paragraph.strip() %}<p>{{ paragraph }}</p>{% endfor %}
+</section>
+{% endif %}
+</section>

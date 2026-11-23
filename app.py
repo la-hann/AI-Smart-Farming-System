@@ -17,7 +17,6 @@ from farms import farms
 from models import Crop, Farm, HealthCase, User, db
 from original_workflows import case_rows
 from farmer_tools import tools as farmer_tools
-from farming_chat import chat
 from request_limits import permit_request
 
 
@@ -57,7 +56,6 @@ def create_app(config=None):
     CSRFProtect(app)
     app.register_blueprint(farms)
     app.register_blueprint(farmer_tools)
-    app.register_blueprint(chat)
 
     @app.context_processor
     def interface_date():
@@ -75,7 +73,7 @@ def create_app(config=None):
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
         )
-        if request.endpoint == "diagnose":
+        if request.endpoint in ("diagnose", "farms.diseases_page"):
             response.headers["Content-Security-Policy"] += "; script-src 'self' 'wasm-unsafe-eval'; img-src 'self' blob:"
         if request.is_secure and app.config["SESSION_COOKIE_SECURE"]:
             response.headers["Strict-Transport-Security"] = "max-age=31536000"
@@ -102,6 +100,8 @@ def create_app(config=None):
     def diagnose():
         if not g.user:
             return redirect(url_for("login"))
+        if not g.user.is_admin:
+            return redirect(url_for("farms.diseases_page", _anchor="crop-disease-scanner"))
         return render_template("diagnose.html")
 
     @app.route("/login", methods=["GET", "POST"])

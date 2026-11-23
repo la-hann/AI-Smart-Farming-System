@@ -9,6 +9,7 @@ import requests
 from flask import Blueprint, abort, flash, g, redirect, render_template, request, url_for
 from sqlalchemy.dialects.sqlite import insert
 
+from farming_chat import chat_context
 from farms import date_field, farmer_required, field, owned_farms, save
 from models import Crop, CropCheck, Farm, IrrigationEntry, IrrigationPlan, db
 
@@ -200,14 +201,29 @@ def plan_values(farm):
 
 @tools.route("/recommendations", methods=["GET", "POST"])
 def recommendations():
-    selected = request.form.get("crop_id") if request.method == "POST" else request.args.get("crop_id")
+    saving = request.method == "POST"
+    selected = request.form.get("crop_id") if saving else request.args.get("crop_id")
+    return ai_dashboard(selected, saving=saving)
+
+
+@tools.route("/chatbot", methods=["GET", "POST"])
+def chatbot():
+    selected = request.args.get("crop_id")
+    if request.method == "GET":
+        return redirect(url_for("farmer_tools.recommendations", crop_id=selected, _anchor="ai-chatbot"))
+    if selected:
+        owned_crop(selected)
+    return ai_dashboard(selected, chat=chat_context(request.form.get("question", ""), g.user.id))
+
+
+def ai_dashboard(selected, saving=False, chat=None):
     acres_text, efficiency_text = "", "80"
     result = error = crop = None
     alerts = []
     if selected:
         crop, farm = owned_crop(selected)
         plan = db.session.get(IrrigationPlan, crop.id)
-        if request.method == "POST":
+        if saving:
             acres_text = request.form.get("area_acres", "")
             efficiency_text = request.form.get("efficiency", "")
             try:
@@ -221,7 +237,8 @@ def recommendations():
                     index_elements=[IrrigationPlan.crop_id], set_=settings,
                 ))
                 db.session.commit()
-                return redirect(url_for("farmer_tools.recommendations", crop_id=crop.id), 303)
+                return redirect(url_for("farmer_tools.recommendations", crop_id=crop.id,
+                                        _anchor="ai-recommendation"), 303)
         elif plan:
             acres_text, efficiency_text = plan.acres, plan.efficiency
         today = local_today()
@@ -231,11 +248,11 @@ def recommendations():
             error = error or "An irrigation estimate is available for active maize, tomato, potato, and dry bean crops."
         result = plan_result(crop, plan, forecast, today)
         error = error or weather_error
-    elif request.method == "POST":
+    elif saving:
         error = "Choose one of your crops."
     return render_template("recommendations.html", crops=owned_crops(), selected=selected,
                            acres=acres_text, efficiency=efficiency_text, result=result, crop=crop,
-                           alerts=alerts, error=error)
+                           alerts=alerts, error=error, chat=chat or chat_context())
 
 
 def check_interval(crop):
