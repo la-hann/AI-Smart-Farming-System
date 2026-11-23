@@ -188,7 +188,6 @@ class FarmWorkflows(unittest.TestCase):
         self.assertEqual(self.submit(client, update, {"status": "Recovered"}, "/diseases").status_code, 303)
         self.assertIn(b"Healthy", client.get("/crops").data)
         self.assertIn(b"Recovered:", client.get("/diseases").data)
-        self.assertIn(b"Check weather for a farm", client.get("/weather").data)
         geocoding, forecast = Mock(), Mock()
         geocoding.json.return_value = {"results": [{"name": "Nairobi", "latitude": -1.29, "longitude": 36.82}]}
         forecast.json.return_value = {
@@ -198,10 +197,17 @@ class FarmWorkflows(unittest.TestCase):
                 "temperature_2m_max": [25, 25, 26],
                 "temperature_2m_min": [15, 16, 17],
                 "precipitation_probability_max": [30, 40, 20],
+                "precipitation_sum": [0, 0, 12],
+                "weather_code": [0, 2, 65],
+                "wind_gusts_10m_max": [23, 25, 30],
             },
         }
-        with patch("original_workflows.requests.get", side_effect=[geocoding, forecast]):
-            weather = self.submit(client, "/weather", {"farm_id": farm_id})
+        with patch("original_workflows.requests.get", side_effect=[geocoding, forecast, geocoding, forecast]):
+            first_visit = client.get(f"/weather?farm_id={farm_id}")
+            weather = self.submit(client, "/weather", {"farm_id": farm_id}, "/dashboard")
+        self.assertIn(b"Check weather for a farm", first_visit.data)
+        self.assertIn(b"Heavy rain", first_visit.data)
+        self.assertIn(b"Check drainage", first_visit.data)
         self.assertIn(b"Three-day outlook", weather.data)
         self.assertIn(b"Nairobi", weather.data)
         missing = client.get("/page-does-not-exist")
@@ -245,12 +251,21 @@ class FarmWorkflows(unittest.TestCase):
             self.assertIn(b"31,645 L", response.data)
             self.assertIn(b"31,645 L", client.get(f"/irrigation?crop_id={crop_id}").data)
             self.assertIn(b"High of 33 C forecast", response.data)
-            self.assertIn(b"Due today", client.get(f"/alerts?farm_id={farm_id}").data)
+            alert = client.get(f"/alerts?farm_id={farm_id}").data
+            self.assertIn(b"Due today", alert)
+            self.assertIn(b"Next watering check", alert)
+            self.assertIn(b"In 3 days", alert)
+            self.assertIn(b"review a fresh forecast", alert)
             self.assertEqual(self.submit(client, f"/alerts/{crop_id}/checked", {},
                                          f"/alerts?farm_id={farm_id}").status_code, 303)
             self.assertIn((today + timedelta(days=3)).isoformat().encode(),
                           client.get(f"/alerts?farm_id={farm_id}").data)
             self.assertEqual(self.submit(outsider, f"/alerts/{crop_id}/checked", {}, "/alerts").status_code, 404)
+        dry_forecast = [(today + timedelta(days=offset), 5, 0, 20, 25, 15) for offset in range(3)]
+        with patch("farmer_tools.fetch_forecast", return_value=dry_forecast):
+            alert = client.get(f"/alerts?farm_id={farm_id}").data
+            self.assertIn(b"Tomorrow", alert)
+            self.assertIn(b"Whole-farm irrigation was logged today", alert)
         with patch.dict("os.environ", {"GEMINI_API_KEY": ""}):
             self.assertEqual(client.get("/chatbot").location, "/recommendations#ai-chatbot")
             ai_page = client.get("/recommendations").data

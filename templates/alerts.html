@@ -21,6 +21,16 @@
   {% endif %}
   {% else %}<p>Add a farm with a town or county location to see weather alerts.</p>{% endif %}
 </section>
+{% if irrigation_alert %}
+<section class="content-card">
+  <h2>Next watering check</h2>
+  <p><strong>{{ irrigation_alert.timing }}</strong> · <time datetime="{{ irrigation_alert.day }}">{{ irrigation_alert.day.strftime('%d %B %Y') }}</time></p>
+  <p>{{ irrigation_alert.guidance }}</p>
+  <p class="tiny-note">Check sooner if plants wilt or the soil dries out. Revisit this alert when the forecast changes.</p>
+  {% if irrigation_alert.last_watered %}<p class="muted">Last whole-farm irrigation logged on {{ irrigation_alert.last_watered.strftime('%d %B %Y') }}.</p>{% endif %}
+  <p><a href="{{ url_for('farmer_tools.irrigation', target='farm:' ~ selected) }}">Record watering for this farm</a></p>
+</section>
+{% endif %}
 <section class="content-card">
   <h2>Crop check reminders</h2>
   <div class="table-wrap"><table>

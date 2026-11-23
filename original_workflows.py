@@ -7,6 +7,7 @@ from sqlalchemy import text
 
 from farms import farms, owned_farm, field, date_field, choice, save
 from models import CASE_STATUSES, Crop, Farm, HealthCase, HealthUpdate, InputLog, User, db
+from weather_guidance import forecast_guidance
 
 
 def farm_rows():
@@ -44,14 +45,18 @@ def case_rows(owner_id=None, limit=None):
             for c, f, u, p in records]
 
 
-def submitted_farm():
+def selected_farm(value):
     try:
-        farm_id = int(request.form.get("farm_id", ""))
+        farm_id = int(value)
         if not 0 < farm_id <= 2147483647:
             raise ValueError
-    except ValueError as exc:
+    except (TypeError, ValueError) as exc:
         raise ValueError("Choose one of your farms.") from exc
     return owned_farm(farm_id)
+
+
+def submitted_farm():
+    return selected_farm(request.form.get("farm_id"))
 
 
 def optional_crop(farm_id):
@@ -192,10 +197,13 @@ def update_case(case_id):
 @farms.route("/weather", methods=["GET", "POST"])
 def weather_page():
     report = error = None
+    farms_available = farm_rows()
     selected = request.values.get("farm_id", "")
-    if request.method == "POST":
+    if request.method == "GET" and not selected and len(farms_available) == 1:
+        selected = farms_available[0]["farm_id"]
+    if selected:
         try:
-            farm = submitted_farm()
+            farm = selected_farm(selected)
             geo = requests.get("https://geocoding-api.open-meteo.com/v1/search",
                                params={"name": farm.location, "count": 1}, timeout=(3, 5))
             geo.raise_for_status()
@@ -206,15 +214,19 @@ def weather_page():
             response = requests.get("https://api.open-meteo.com/v1/forecast", params={
                 "latitude": place["latitude"], "longitude": place["longitude"],
                 "current": "temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,wind_speed_10m",
-                "daily": "precipitation_probability_max,temperature_2m_max,temperature_2m_min",
+                "daily": (
+                    "precipitation_probability_max,precipitation_sum,temperature_2m_max,"
+                    "temperature_2m_min,weather_code,wind_gusts_10m_max"
+                ),
                 "forecast_days": 3, "timezone": "auto",
             }, timeout=(3, 5))
             response.raise_for_status()
             payload = response.json()
             report = {"place": ", ".join(place[key] for key in ("name", "admin1", "country") if place.get(key)),
-                      "current": payload["current"], "daily": payload["daily"]}
+                      "current": payload["current"], "daily": payload["daily"],
+                      "guidance": forecast_guidance(payload["daily"])}
         except (requests.RequestException, KeyError, TypeError):
             error = "Weather service is temporarily unavailable. Please try again."
         except ValueError as exc:
             error = str(exc)
-    return render_template("weather.html", farms=farm_rows(), selected=selected, report=report, error_message=error)
+    return render_template("weather.html", farms=farms_available, selected=selected, report=report, error_message=error)

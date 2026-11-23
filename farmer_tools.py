@@ -12,6 +12,7 @@ from sqlalchemy.dialects.sqlite import insert
 from farming_chat import chat_context
 from farms import date_field, farmer_required, field, owned_farm, owned_farms, save
 from models import Crop, CropCheck, Farm, IrrigationEntry, IrrigationPlan, db
+from weather_guidance import watering_check
 
 
 tools = Blueprint("farmer_tools", __name__)
@@ -291,7 +292,16 @@ def alerts():
         abort(404)
     forecast, error = weather_for(farm, today) if farm else ((), None)
     crop_checks = []
+    irrigation_alert = None
     if farm:
+        last_watered = db.session.scalar(db.select(db.func.max(IrrigationEntry.applied_on)).where(
+            IrrigationEntry.farm_id == farm.id, IrrigationEntry.crop_id.is_(None),
+            IrrigationEntry.applied_on <= today,
+        ))
+        due, guidance = watering_check(forecast, today, last_watered)
+        days = (due - today).days
+        timing = {0: "Today", 1: "Tomorrow"}.get(days, f"In {days} days")
+        irrigation_alert = dict(day=due, timing=timing, guidance=guidance, last_watered=last_watered)
         query = db.select(Crop, CropCheck).outerjoin(CropCheck).where(Crop.farm_id == farm.id,
                                                                      Crop.stage != "Harvested")
         for crop, check in db.session.execute(query):
@@ -300,7 +310,8 @@ def alerts():
             crop_checks.append((crop, due, interval))
     crop_checks.sort(key=lambda item: item[1])
     return render_template("alerts.html", farms=farms, selected=selected, forecast=forecast, error=error,
-                           outlook=weather_alerts(forecast), checks=crop_checks, today=today)
+                           outlook=weather_alerts(forecast), checks=crop_checks, today=today,
+                           irrigation_alert=irrigation_alert)
 
 
 @tools.post("/alerts/<int:crop_id>/checked")
