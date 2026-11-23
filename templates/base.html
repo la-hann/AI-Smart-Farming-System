@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}AI Smart Farming{% endblock %}</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='restored') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='farmer-tools') }}">
 </head>
 <body>
 {% if g.user %}
@@ -20,6 +20,10 @@
       <a class="nav-link {% if request.endpoint=='farms.inputs_page' %}active{% endif %}" href="{{ url_for('farms.inputs_page') }}">▤ &nbsp; Farm inputs</a>
       <a class="nav-link {% if request.endpoint=='farms.diseases_page' %}active{% endif %}" href="{{ url_for('farms.diseases_page') }}">✚ &nbsp; Crop health tracking</a>
       <a class="nav-link {% if request.endpoint=='farms.weather_page' %}active{% endif %}" href="{{ url_for('farms.weather_page') }}">☼ &nbsp; Weather</a>
+      <a class="nav-link {% if request.endpoint=='farming_chat.chatbot' %}active{% endif %}" href="{{ url_for('farming_chat.chatbot') }}">AI Chatbot</a>
+      <a class="nav-link {% if request.endpoint=='farmer_tools.recommendations' %}active{% endif %}" href="{{ url_for('farmer_tools.recommendations') }}">AI recommendation</a>
+      <a class="nav-link {% if request.endpoint=='farmer_tools.alerts' %}active{% endif %}" href="{{ url_for('farmer_tools.alerts') }}">Alerts</a>
+      <a class="nav-link {% if request.endpoint=='farmer_tools.irrigation' %}active{% endif %}" href="{{ url_for('farmer_tools.irrigation') }}">Irrigation</a>
     {% endif %}
       <a class="nav-link {% if request.endpoint=='diagnose' %}active{% endif %}" href="{{ url_for('diagnose') }}">Crop disease scanner</a>
     <div class="sidebar-bottom"><div class="user-chip"><span class="avatar">{{ g.user.name[:1]|upper }}</span><span><b>{{ g.user.name }}</b><small>{{ ('Administrator' if g.user.is_admin else 'Farmer') }}</small></span></div>

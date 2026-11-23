@@ -1,6 +1,6 @@
 import re
 import unittest
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import Mock, patch
@@ -8,7 +8,8 @@ from unittest.mock import Mock, patch
 from flask_migrate import upgrade
 
 from app import create_app
-from models import Farm, db
+from farmer_tools import local_today
+from models import Crop, Farm, db
 
 
 class FarmWorkflows(unittest.TestCase):
@@ -149,3 +150,45 @@ class FarmWorkflows(unittest.TestCase):
         self.assertIn(b"Healthy", client.get("/crops").data)
         self.assertIn(b"Recovered:", client.get("/diseases").data)
         self.assertIn(b"Check weather for a farm", client.get("/weather").data)
+
+    def test_farmer_tools(self):
+        client = self.register("tools-farmer@example.com")
+        outsider = self.register("tools-outsider@example.com")
+        farm = self.add_farm(client, "Waterfield")
+        farm_id = farm.rsplit("/", 1)[-1]
+        self.assertEqual(self.submit(client, "/crops", {
+            "farm_id": farm_id, "crop_name": "Maize", "growth_stage": "Flowering",
+            "health_status": "Healthy",
+        }).status_code, 303)
+        with self.app.app_context():
+            crop_id = db.session.scalar(db.select(Crop.id).filter_by(farm_id=int(farm_id)))
+        today = local_today()
+        entry = {"crop_id": crop_id, "water_amount": "2.5", "unit": "m3", "applied_on": today.isoformat()}
+        self.assertEqual(self.submit(client, "/irrigation", entry).status_code, 303)
+        self.assertIn(b"2,500 L", client.get("/irrigation").data)
+        self.assertNotIn(b"2,500 L", outsider.get("/irrigation").data)
+        self.assertEqual(self.submit(outsider, "/irrigation", entry).status_code, 404)
+        self.assertEqual(outsider.get(f"/recommendations?crop_id={crop_id}&area_acres=0.5").status_code, 404)
+        forecast = [(today + timedelta(days=offset), 5, 2, 65, 33, 20) for offset in range(3)]
+        with patch("farmer_tools.fetch_forecast", return_value=forecast):
+            self.assertEqual(self.submit(client, "/recommendations", {
+                "crop_id": crop_id, "area_acres": "0.5", "efficiency": "80",
+            }).status_code, 303)
+            response = client.get(f"/recommendations?crop_id={crop_id}")
+            self.assertIn(b"31,645 L", response.data)
+            self.assertIn(b"31,645 L", client.get(f"/irrigation?crop_id={crop_id}").data)
+            self.assertIn(b"High of 33 C forecast", response.data)
+            self.assertIn(b"Due today", client.get(f"/alerts?farm_id={farm_id}").data)
+            self.assertEqual(self.submit(client, f"/alerts/{crop_id}/checked", {},
+                                         f"/alerts?farm_id={farm_id}").status_code, 303)
+            self.assertIn((today + timedelta(days=3)).isoformat().encode(),
+                          client.get(f"/alerts?farm_id={farm_id}").data)
+            self.assertEqual(self.submit(outsider, f"/alerts/{crop_id}/checked", {}, "/alerts").status_code, 404)
+        with patch.dict("os.environ", {"GEMINI_API_KEY": ""}):
+            response = self.submit(client, "/chatbot", {"question": "When should I water my maize?"})
+            self.assertIn(b"Built-in farming guide", response.data)
+        with patch.dict("os.environ", {"GEMINI_API_KEY": "test-key"}):
+            with patch("farming_chat.generated_answer", return_value="Inspect three plants.") as generate:
+                response = self.submit(client, "/chatbot", {"question": "How should I scout crops?"})
+                self.assertIn(b"AI answer", response.data)
+                generate.assert_called_once_with("How should I scout crops?", "test-key")

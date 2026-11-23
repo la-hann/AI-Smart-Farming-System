@@ -1,24 +1,24 @@
-from hashlib import sha256
 from datetime import date
 import os
 import re
 from pathlib import Path
-from time import time
 
 import click
 from dotenv import load_dotenv
 from flask import Flask, abort, flash, g, redirect, render_template, request, session, url_for
 from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
-from sqlalchemy import delete, event, text
-from sqlalchemy.dialects.sqlite import insert
+from sqlalchemy import event, text
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from farms import farms
-from models import Crop, Farm, HealthCase, LoginAttempt, User, db
+from models import Crop, Farm, HealthCase, User, db
 from original_workflows import case_rows
+from farmer_tools import tools as farmer_tools
+from farming_chat import chat
+from request_limits import permit_request
 
 
 DUMMY_PASSWORD_HASH = generate_password_hash("unused-placeholder")
@@ -27,22 +27,6 @@ EMAIL = re.compile(r"[^\s@]+@[^\s@]+\.[^\s@]+")
 
 def credentials(email, password):
     return len(email) <= 254 and EMAIL.fullmatch(email) and 8 <= len(password) <= 128
-
-
-def permit_login(ip):
-    window = int(time() // 900)
-    key = sha256(ip.encode()).hexdigest()
-    table = LoginAttempt.__table__
-    statement = insert(table).values(key=key, window=window, attempts=1)
-    statement = statement.on_conflict_do_update(
-        index_elements=[table.c.key, table.c.window],
-        set_={"attempts": table.c.attempts + 1},
-        where=table.c.attempts < 30,
-    ).returning(table.c.attempts)
-    allowed = db.session.execute(statement).scalar_one_or_none() is not None
-    db.session.execute(delete(LoginAttempt).where(LoginAttempt.window < window - 1))
-    db.session.commit()
-    return allowed
 
 
 def create_app(config=None):
@@ -72,6 +56,8 @@ def create_app(config=None):
     Migrate(app, db, directory=os.path.join(app.root_path, "migrations"))
     CSRFProtect(app)
     app.register_blueprint(farms)
+    app.register_blueprint(farmer_tools)
+    app.register_blueprint(chat)
 
     @app.context_processor
     def interface_date():
@@ -126,7 +112,7 @@ def create_app(config=None):
             return render_template("login.html")
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
-        if not permit_login(request.remote_addr or "unknown"):
+        if not permit_request("login", request.remote_addr or "unknown", 30):
             flash("Too many attempts. Try again shortly.", "error")
             return render_template("login.html"), 429
         user = db.session.scalar(db.select(User).filter_by(email=email)) if credentials(email, password) else None

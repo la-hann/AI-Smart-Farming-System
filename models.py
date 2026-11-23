@@ -108,3 +108,34 @@ class LoginAttempt(db.Model):
     key = db.Column(db.String(64), primary_key=True)
     window = db.Column(db.BigInteger, primary_key=True)
     attempts = db.Column(db.Integer, nullable=False)
+
+
+class IrrigationEntry(db.Model):
+    __tablename__ = "irrigation_entries"
+
+    id = db.Column(db.Integer, primary_key=True)
+    crop_id = db.Column(db.ForeignKey("crops.id"), nullable=False, index=True)
+    applied_on = db.Column(db.Date, nullable=False)
+    litres = db.Column(db.Numeric(14, 3), nullable=False)
+
+    __table_args__ = (CheckConstraint("litres > 0", name="positive_irrigation_volume"),)
+
+
+class CropCheck(db.Model):
+    __tablename__ = "crop_checks"
+
+    crop_id = db.Column(db.ForeignKey("crops.id"), primary_key=True)
+    checked_on = db.Column(db.Date, nullable=False)
+
+
+class IrrigationPlan(db.Model):
+    __tablename__ = "irrigation_plans"
+
+    crop_id = db.Column(db.ForeignKey("crops.id"), primary_key=True)
+    acres = db.Column(db.Numeric(9, 3), nullable=False)
+    efficiency = db.Column(db.Integer, nullable=False)
+
+    __table_args__ = (
+        CheckConstraint("acres > 0", name="positive_irrigated_area"),
+        CheckConstraint("efficiency BETWEEN 30 AND 100", name="valid_irrigation_efficiency"),
+    )

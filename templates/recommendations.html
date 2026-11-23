@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% from "crop_options.html" import options %}
+{% block title %}AI recommendation{% endblock %}
+{% block page_heading %}AI recommendation{% endblock %}
+{% block content %}
+<section class="content-card">
+  <h2>Next irrigation estimate</h2>
+  <p>Estimate additional water over three days using the crop stage, farm forecast, plot size, and water logged today.</p>
+  {% if crops %}
+  <form method="post" class="form-grid">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="full"><label for="plan-crop">Crop and farm</label><select name="crop_id" id="plan-crop" required>{{ options(crops, selected) }}</select></div>
+    <div><label for="plan-area">Irrigated crop plot area (acres)</label><input type="number" min="0.001" max="100000" step="0.001" id="plan-area" name="area_acres" value="{{ acres }}" required></div>
+    <div><label for="plan-efficiency">Application efficiency (%)</label><input type="number" min="30" max="100" id="plan-efficiency" name="efficiency" value="{{ efficiency }}" required></div>
+    <div class="full"><button class="primary-button">Save plot and calculate</button></div>
+  </form>
+  <p class="tiny-note">Enter the area planted with this crop. Saved settings let Irrigation recalculate after each entry. The default 80% efficiency is a planning assumption.</p>
+  {% else %}<p>Add a crop in Crop management to get an estimate.</p>{% endif %}
+</section>
+{% if result %}
+<div class="stat-grid">
+  <article class="stat-card"><small>Additional water</small><strong>{{ '{:,}'.format(result.litres) }} L</strong><span>{{ result.start }} to {{ result.end }}</span></article>
+  <article class="stat-card"><small>Estimated crop water loss</small><strong>{{ '%.1f'|format(result.demand) }} mm</strong></article>
+  <article class="stat-card"><small>Forecast rain credited</small><strong>{{ '%.1f'|format(result.rain) }} mm</strong></article>
+  <article class="stat-card"><small>Irrigation logged today</small><strong>{{ '{:,.3f}'.format(result.applied).rstrip('0').rstrip('.') }} L</strong></article>
+</div>
+{% endif %}
+{% if crop %}
+<section class="content-card">
+  <h2>What to do next for {{ crop.name }}</h2>
+  {% if result and result.litres %}
+  <p>Check root-zone moisture before watering. If it is dry, spread the estimated amount across the forecast period as needed. Recheck after rain.</p>
+  {% elif result %}<p>Check the soil before adding water. Forecast rain and water already logged cover the estimated demand.</p>
+  {% else %}<p>Check the soil around the roots and inspect several leaves for changes. Use the weather outlook to plan the next check.</p>{% endif %}
+  {% if crop.health != "Healthy" %}<p>Inspect the affected plants and update their crop health case. Compare symptoms on several plants before taking action.</p>{% endif %}
+  {% if alerts %}<ul>{% for day, advice in alerts %}<li>{{ day }}. {{ advice }}</li>{% endfor %}</ul>{% endif %}
+  {% if result %}
+  <p class="tiny-note">This planning estimate credits 75% of forecast rain. It does not measure soil moisture or account for runoff, stored soil water, or earlier watering.</p>
+  {% endif %}
+  <p><a href="{{ url_for('farmer_tools.irrigation', crop_id=crop.id) }}">Record water used</a></p>
+</section>
+{% endif %}
+{% endblock %}

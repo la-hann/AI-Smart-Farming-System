@@ -78,3 +78,23 @@ outputs 38 logits. The app reports only the four maize classes and declines
 predictions below 0.75 after the source checkpoint's temperature scaling.
 This threshold is a screening choice and has not been validated on Kenyan
 farms. Management guidance links to university extension references.
+
+## Farmer dashboards
+
+- **Irrigation** records litres or cubic metres by crop and date. The total
+  includes all matching records, and the history shows the latest 50 entries.
+- **AI recommendation** uses a saved plot size and application efficiency,
+  three days of Open-Meteo reference evapotranspiration and forecast rain,
+  the crop and growth stage, and irrigation logged today. Water figures are
+  planning estimates, with crop coefficients informed by
+  [FAO-56](https://www.fao.org/4/X0490E/x0490e0b.htm).
+- **Alerts** shows the selected farm's forecast and crop-check reminders
+  every 3, 7, or 14 days, depending on crop stage and health. Reminders are
+  displayed in the app.
+- **AI Chatbot** answers common questions from the built-in guide. For
+  open-ended answers, add `GEMINI_API_KEY` to the private server `.env`
+  and reload the web app. Use a
+  [Gemini free-tier project](https://ai.google.dev/gemini-api/docs/pricing)
+  with billing disabled if the deployment must cost KSh 0. Only the
+  submitted question is sent to Gemini, and questions are not stored by
+  this app. A local guide remains available if the service returns an error.

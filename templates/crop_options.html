@@ -1,0 +1,6 @@
+{% macro options(crops, selected) %}
+<option value="">Choose a crop</option>
+{% for crop, farm in crops %}
+<option value="{{ crop.id }}" {% if selected|string == crop.id|string %}selected{% endif %}>{{ farm.name }} / {{ crop.name }}</option>
+{% endfor %}
+{% endmacro %}

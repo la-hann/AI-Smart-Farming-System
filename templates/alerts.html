@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Alerts{% endblock %}
+{% block page_heading %}Alerts{% endblock %}
+{% block content %}
+<section class="content-card">
+  <h2>Upcoming weather</h2>
+  {% if farms %}
+  <form method="get" class="inline-form">
+    <label for="alert-farm">Farm</label><select name="farm_id" id="alert-farm">{% for farm in farms %}
+      <option value="{{ farm.id }}" {% if selected == farm.id %}selected{% endif %}>{{ farm.name }} / {{ farm.location }}</option>
+    {% endfor %}</select><button class="small-button">Show alerts</button>
+  </form>
+  {% if forecast %}
+  <div class="forecast-grid">
+    {% for day, et, rain, chance, temperature, gust in forecast %}
+    <article class="forecast-day"><b>{{ day }}</b><strong>{{ temperature }} &deg;C</strong><span>{{ rain }} mm forecast rain</span><span>{{ chance }}% chance of rain</span></article>
+    {% endfor %}
+  </div>
+  {% if outlook %}<ul>{% for day, advice in outlook %}<li>{{ day }}. {{ advice }}</li>{% endfor %}</ul>
+  {% else %}<p>No rain, heat, or wind advisories in this outlook.</p>{% endif %}
+  {% endif %}
+  {% else %}<p>Add a farm with a town or county location to see weather alerts.</p>{% endif %}
+</section>
+<section class="content-card">
+  <h2>Crop check reminders</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Crop</th><th>Check by</th><th>Frequency</th><th>Action</th></tr></thead>
+    <tbody>{% for crop, due, interval in checks %}
+    <tr><td>{{ crop.name }}<small>{{ crop.stage }}</small></td><td>{{ due }}{% if due < today %}<small>Overdue</small>{% elif due == today %}<small>Due today</small>{% endif %}</td>
+      <td>Every {{ interval }} days</td><td><form method="post" action="{{ url_for('farmer_tools.checked', crop_id=crop.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="small-button">Mark checked</button>
+      </form></td></tr>
+    {% else %}<tr><td colspan="4">No active crops for this farm.</td></tr>{% endfor %}</tbody>
+  </table></div>
+  <p class="tiny-note">Forecast alerts and crop reminders appear here when you open the dashboard.</p>
+</section>
+{% endblock %}
