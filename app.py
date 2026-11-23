@@ -1,14 +1,16 @@
 from hashlib import sha256
 import os
 import re
+from pathlib import Path
 from time import time
 
 import click
+from dotenv import load_dotenv
 from flask import Flask, abort, g, redirect, render_template, request, session, url_for
 from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
-from sqlalchemy import delete, text
-from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy import delete, event, text
+from sqlalchemy.dialects.sqlite import insert
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -43,12 +45,11 @@ def permit_login(ip):
 
 def create_app(config=None):
     app = Flask(__name__)
+    load_dotenv(Path(app.root_path) / ".env")
     environment = os.environ.get("APP_ENV", "production")
-    database_url = os.environ.get("DATABASE_URL", "")
-    database_url = re.sub(r"^postgres(?:ql)?://", "postgresql+psycopg://", database_url)
     app.config.update(
         SECRET_KEY=os.environ.get("SECRET_KEY"),
-        SQLALCHEMY_DATABASE_URI=database_url,
+        SQLALCHEMY_DATABASE_URI="sqlite:///smart_farming.sqlite3",
         SQLALCHEMY_ENGINE_OPTIONS={"pool_pre_ping": True},
         SESSION_COOKIE_SECURE=environment != "development",
         SESSION_COOKIE_HTTPONLY=True,
@@ -58,13 +59,14 @@ def create_app(config=None):
     app.config.update(config or {})
     if len(app.config["SECRET_KEY"] or "") < 32:
         raise RuntimeError("Set SECRET_KEY to a random value of at least 32 characters.")
-    if not app.config["TESTING"] and not app.config["SQLALCHEMY_DATABASE_URI"].startswith("postgresql+psycopg://"):
-        raise RuntimeError("Set DATABASE_URL to a PostgreSQL connection URL.")
+    Path(app.instance_path).mkdir(parents=True, exist_ok=True)
     proxy_hops = int(os.environ.get("TRUSTED_PROXY_HOPS", "0"))
     if proxy_hops:
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=proxy_hops, x_proto=proxy_hops)
 
     db.init_app(app)
+    with app.app_context():
+        event.listen(db.engine, "connect", enable_foreign_keys)
     Migrate(app, db, directory=os.path.join(app.root_path, "migrations"))
     CSRFProtect(app)
     app.register_blueprint(farms)
@@ -195,3 +197,11 @@ def create_app(config=None):
         return render_template("error.html", title="Request unavailable", message=messages[error.code]), error.code
 
     return app
+
+
+def enable_foreign_keys(connection, _record):
+    cursor = connection.cursor()
+    try:
+        cursor.execute("PRAGMA foreign_keys=ON")
+    finally:
+        cursor.close()

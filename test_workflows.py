@@ -1,38 +1,25 @@
-import os
 import re
 import unittest
 from datetime import date
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest.mock import Mock, patch
-from uuid import uuid4
 
 from flask_migrate import upgrade
-from sqlalchemy import create_engine, text
-from sqlalchemy.engine import make_url
 
 from app import create_app
 from models import db
 
 
-@unittest.skipUnless(os.environ.get("TEST_DATABASE_URL"), "Set TEST_DATABASE_URL to run PostgreSQL tests.")
 class FarmWorkflows(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        url = make_url(os.environ["TEST_DATABASE_URL"]).set(drivername="postgresql+psycopg")
-        schema = "test_" + uuid4().hex
-        engine = create_engine(url)
-
-        def cleanup():
-            with engine.begin() as connection:
-                connection.execute(text(f'DROP SCHEMA IF EXISTS "{schema}" CASCADE'))
-            engine.dispose()
-
-        cls.addClassCleanup(cleanup)
-        with engine.begin() as connection:
-            connection.execute(text(f'CREATE SCHEMA "{schema}"'))
+        directory = cls.enterClassContext(TemporaryDirectory())
+        database = (Path(directory) / "test.sqlite3").as_posix()
         cls.app = create_app({
             "TESTING": True,
             "SECRET_KEY": "only-for-disposable-integration-tests",
-            "SQLALCHEMY_DATABASE_URI": url.update_query_dict({"options": f"-csearch_path={schema}"}),
+            "SQLALCHEMY_DATABASE_URI": f"sqlite:///{database}",
             "SESSION_COOKIE_SECURE": False,
         })
         with cls.app.app_context():

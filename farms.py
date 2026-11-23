@@ -3,6 +3,7 @@ from decimal import Decimal, InvalidOperation
 
 import requests
 from flask import Blueprint, abort, flash, g, redirect, render_template, request, url_for
+from sqlalchemy import text
 
 from models import CASE_STATUSES, Crop, Farm, HealthCase, HealthUpdate, InputLog, db
 
@@ -213,10 +214,11 @@ def case_page(farm, case, error=None):
 
 @farms.route("/farms/<int:farm_id>/cases/<int:case_id>", methods=["GET", "POST"])
 def health_case(farm_id, case_id):
+    if request.method == "POST":
+        # Reserve the write before reading the current crop health status.
+        db.session.execute(text("BEGIN IMMEDIATE"))
     farm = owned_farm(farm_id)
     statement = db.select(HealthCase).filter_by(farm_id=farm.id, id=case_id)
-    if request.method == "POST":
-        statement = statement.with_for_update()
     case = db.session.scalar(statement)
     if case is None:
         abort(404)
