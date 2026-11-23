@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% from "forms.html" import input, select, crop_select, token with context %}
+{% block context %}<a href="{{ url_for('farms.farm_list') }}">All farms</a>{% endblock %}
+{% block content %}
+<div class="panel section-heading">
+  <div><strong>{{ farm.location }}</strong>{% if farm.area %} &middot; {{ farm.area }} ha{% endif %}
+  {% if farm.soil %} &middot; {{ farm.soil }} soil{% endif %}
+  {% if farm.irrigation %} &middot; {{ farm.irrigation }} irrigation{% endif %}
+  {% if farm.water_source %} &middot; {{ farm.water_source }}{% endif %}</div>
+  <a href="{{ url_for('farms.weather', farm_id=farm.id) }}">Weather forecast</a>
+</div>
+<div class="columns">
+  <section class="panel">
+    <h2>Crops</h2>
+    <ul class="records">{% for crop in crops %}
+      <li><a href="{{ url_for('farms.edit_crop', farm_id=farm.id, crop_id=crop.id) }}">{{ crop.name }}</a>{% if crop.variety %} &middot; {{ crop.variety }}{% endif %}
+        <span>{{ crop.stage }} &middot; {{ crop.health }}</span>
+        <span>Planted {{ crop.planted_on }}{% if crop.harvest_on %} &middot; Expected harvest {{ crop.harvest_on }}{% endif %}</span></li>
+      {% else %}<li>No crops recorded yet.</li>{% endfor %}</ul>
+    <details {% if request.endpoint == 'farms.add_crop' %}open{% endif %}>
+      <summary>Add a crop</summary>
+      <form method="post" action="{{ url_for('farms.add_crop', farm_id=farm.id) }}">
+        {{ token() }}
+        {{ input('Crop name', 'name', required=true, limit=100) }}
+        {{ input('Variety', 'variety', limit=100) }}
+        {{ input('Planting date', 'planted_on', 'date', true) }}
+        {{ input('Expected harvest', 'harvest_on', 'date') }}
+        {{ select('Growth stage', 'stage', stages) }}
+        {{ select('Crop health', 'health', health) }}
+        <button>Add crop</button>
+      </form>
+    </details>
+  </section>
+  <section class="panel">
+    <h2>Input log</h2>
+    <ul class="records">{% for item in inputs %}
+      <li><strong>{{ item.product }}</strong><span>{{ item.applied_on }} &middot; {{ item.category }}{% if item.quantity %} &middot; {{ item.quantity }}{% endif %}</span>
+        {% if item.notes %}<span>{{ item.notes }}</span>{% endif %}</li>
+      {% else %}<li>No inputs logged yet.</li>{% endfor %}</ul>
+    <details {% if request.endpoint == 'farms.add_input' %}open{% endif %}>
+      <summary>Log an input</summary>
+      <form method="post" action="{{ url_for('farms.add_input', farm_id=farm.id) }}">
+        {{ token() }}
+        {{ crop_select(crops) }}
+        {{ select('Category', 'category', categories) }}
+        {{ input('Product or activity', 'product', required=true, limit=120) }}
+        {{ input('Quantity and units', 'quantity', limit=80) }}
+        {{ input('Date applied', 'applied_on', 'date', true) }}
+        <label>Notes<textarea name="notes" maxlength="4000">{{ request.form.get('notes', '') }}</textarea></label>
+        <button>Log input</button>
+      </form>
+    </details>
+  </section>
+  <section class="panel">
+    <h2>Crop health</h2>
+    <ul class="records">{% for case in cases %}
+      <li><a href="{{ url_for('farms.health_case', farm_id=farm.id, case_id=case.id) }}">{{ case.title }}</a><span>{{ case.reported_on }} &middot; {{ case.status }}</span></li>
+      {% else %}<li>No health cases recorded yet.</li>{% endfor %}</ul>
+    <details {% if request.endpoint == 'farms.report_case' %}open{% endif %}>
+      <summary>Report a health case</summary>
+      <form method="post" action="{{ url_for('farms.report_case', farm_id=farm.id) }}">
+        {{ token() }}
+        {{ crop_select(crops) }}
+        {{ input('Issue', 'title', required=true, limit=150) }}
+        {{ input('Report date', 'reported_on', 'date', true) }}
+        <label>Symptoms<textarea name="symptoms" maxlength="4000" required>{{ request.form.get('symptoms', '') }}</textarea></label>
+        <button>Report case</button>
+      </form>
+    </details>
+  </section>
+</div>
+{% endblock %}

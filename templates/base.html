@@ -1,36 +1,33 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}AI Smart Farming{% endblock %}</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title }} | Smart Farming</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-{% if session.get('user_id') %}
-<div class="app-shell">
-  <aside class="sidebar">
-    <a class="brand" href="{{ url_for('home') }}"><span class="brand-mark">SF</span><span><b>SMART FARMING</b><small>AI-DRIVEN PLATFORM</small></span></a>
-    <div class="side-label">WORKSPACE</div>
-    {% if session.get('role') == 'admin' %}
-      <a class="nav-link {% if request.endpoint=='admin_dashboard' %}active{% endif %}" href="{{ url_for('admin_dashboard') }}">▦ &nbsp; Admin overview</a>
-    {% else %}
-      <a class="nav-link {% if request.endpoint=='dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}">▦ &nbsp; Dashboard</a>
-      <a class="nav-link {% if request.endpoint=='farms_page' %}active{% endif %}" href="{{ url_for('farms_page') }}">⌂ &nbsp; Farm management</a>
-      <a class="nav-link {% if request.endpoint=='crops_page' %}active{% endif %}" href="{{ url_for('crops_page') }}">♧ &nbsp; Crop management</a>
-      <a class="nav-link {% if request.endpoint=='inputs_page' %}active{% endif %}" href="{{ url_for('inputs_page') }}">▤ &nbsp; Farm inputs</a>
-      <a class="nav-link {% if request.endpoint=='diseases_page' %}active{% endif %}" href="{{ url_for('diseases_page') }}">✚ &nbsp; Crop health tracking</a>
-      <a class="nav-link {% if request.endpoint=='weather_page' %}active{% endif %}" href="{{ url_for('weather_page') }}">☼ &nbsp; Weather</a>
+<header>
+  <nav aria-label="Main navigation">
+    <a class="brand" href="{{ url_for('index') }}">Smart Farming</a>
+    {% if g.user %}
+      {% if not g.user.is_admin %}
+      <a href="{{ url_for('farms.dashboard') }}">Dashboard</a>
+      <a href="{{ url_for('farms.farm_list') }}">Farms</a>
+      {% endif %}
+      <form method="post" action="{{ url_for('logout') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="secondary">Sign out</button>
+      </form>
     {% endif %}
-    <div class="sidebar-bottom"><div class="user-chip"><span class="avatar">{{ session.get('name','U')[:1]|upper }}</span><span><b>{{ session.get('name') }}</b><small>{{ session.get('role')|title }}</small></span></div>
-      <form method="post" action="{{ url_for('logout') }}"><button class="logout-button">↪ &nbsp; Sign out</button></form></div>
-  </aside>
-  <main class="main-area"><header class="topbar"><div><span class="eyebrow">AI-DRIVEN SMART FARMING SYSTEM</span><h1>{% block page_heading %}Farm workspace{% endblock %}</h1></div><div class="top-date">{{ now_date }}</div></header>
-    {% with messages=get_flashed_messages(with_categories=true) %}{% if messages %}<div class="messages">{% for category,message in messages %}<div class="message {{ category }}">{{ message }}</div>{% endfor %}</div>{% endif %}{% endwith %}
-    {% block content %}{% endblock %}
-    <footer>AI-Driven Smart Farming System <span>•</span> Smarter decisions for healthier farms</footer>
-  </main>
-</div>
-{% else %}
-<main class="auth-shell"><section class="auth-brand"><div class="brand-mark large">SF</div><p class="eyebrow">AI-DRIVEN SMART FARMING</p><h1>Grow smarter.<br>Farm better.</h1><p>Manage farm records, monitor crop health and understand local weather conditions in one place.</p><div class="auth-foot">Smart decisions for healthier farms</div></section><section class="auth-content">{% with messages=get_flashed_messages(with_categories=true) %}{% if messages %}<div class="messages">{% for category,message in messages %}<div class="message {{ category }}">{{ message }}</div>{% endfor %}</div>{% endif %}{% endwith %}{% block auth_content %}{% endblock %}</section></main>
-{% endif %}
-</body></html>
+  </nav>
+</header>
+<main>
+  {% block context %}{% endblock %}
+  <h1>{{ title }}</h1>
+  {% for message in get_flashed_messages() %}<p class="notice" role="status">{{ message }}</p>{% endfor %}
+  {% if error %}<p class="notice error" role="alert">{{ error }}</p>{% endif %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

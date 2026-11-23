@@ -1,0 +1,7 @@
+<ul class="records">
+{% for farm in farms %}
+<li><a href="{{ url_for('farms.detail', farm_id=farm.id) }}">{{ farm.name }}</a><span>{{ farm.location }}</span></li>
+{% else %}
+<li>No farms registered yet.</li>
+{% endfor %}
+</ul>

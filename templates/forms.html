@@ -1,0 +1,28 @@
+{% macro token() %}
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+{% endmacro %}
+{% macro input(label, name, type='text', required=false, limit=none) %}
+<label>{{ label }}
+  <input name="{{ name }}" type="{{ type }}" {% if required %}required{% endif %}
+    {% if limit %}maxlength="{{ limit }}"{% endif %} value="{{ request.form.get(name, '') }}">
+</label>
+{% endmacro %}
+{% macro select(label, name, choices, selected=none) %}
+<label>{{ label }}
+  <select name="{{ name }}" required>
+    {% for option in choices %}
+    <option {% if request.form.get(name, selected) == option %}selected{% endif %}>{{ option }}</option>
+    {% endfor %}
+  </select>
+</label>
+{% endmacro %}
+{% macro crop_select(crops) %}
+<label>Crop
+  <select name="crop">
+    <option value="">Whole farm</option>
+    {% for crop in crops %}
+    <option value="{{ crop.id }}" {% if request.form.get('crop') == crop.id|string %}selected{% endif %}>{{ crop.name }}</option>
+    {% endfor %}
+  </select>
+</label>
+{% endmacro %}

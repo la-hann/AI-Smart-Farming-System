@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% from "forms.html" import select, token with context %}
+{% block context %}<a href="{{ url_for('farms.detail', farm_id=farm.id) }}">{{ farm.name }}</a>{% endblock %}
+{% block content %}
+<div class="columns">
+  <section class="panel">
+    <h2>Case details</h2>
+    <p><strong>{{ case.status }}</strong> &middot; Reported {{ case.reported_on }}</p>
+    {% if case.recovered_on %}<p>Recovered {{ case.recovered_on }}</p>{% endif %}
+    <p class="preserve">{{ case.symptoms }}</p>
+    <h2>Treatment and status history</h2>
+    <ul class="records">{% for update in updates %}
+      <li><strong>{{ update.status }}</strong><span>{{ update.created_at.date() }}</span><span class="preserve">{{ update.notes }}</span></li>
+      {% else %}<li>No updates recorded yet.</li>{% endfor %}</ul>
+  </section>
+  <section class="panel">
+    <h2>Add an update</h2>
+    <form method="post">
+      {{ token() }}
+      {{ select('Status', 'status', statuses, case.status) }}
+      <label>Treatment or observation<textarea name="notes" maxlength="4000" required>{{ request.form.get('notes', '') }}</textarea></label>
+      <button>Save update</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

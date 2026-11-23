@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% from "forms.html" import select, token with context %}
+{% block context %}<a href="{{ url_for('farms.detail', farm_id=farm.id) }}">{{ farm.name }}</a>{% endblock %}
+{% block content %}
+<section class="panel auth">
+  <p>Planted {{ crop.planted_on }}{% if crop.variety %} &middot; {{ crop.variety }}{% endif %}</p>
+  <form method="post">
+    {{ token() }}
+    <label>Expected harvest
+      <input name="harvest_on" type="date" min="{{ crop.planted_on }}"
+        value="{{ request.form.get('harvest_on', crop.harvest_on or '') }}">
+    </label>
+    {{ select('Growth stage', 'stage', stages, crop.stage) }}
+    {{ select('Crop health', 'health', health, crop.health) }}
+    <button>Save crop</button>
+  </form>
+</section>
+{% endblock %}
