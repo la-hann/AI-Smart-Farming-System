@@ -9,7 +9,7 @@ from flask_migrate import upgrade
 
 from app import create_app
 from farmer_tools import local_today
-from models import Crop, Farm, db
+from models import Crop, Farm, HealthCase, HealthUpdate, InputLog, IrrigationEntry, db
 
 
 class FarmWorkflows(unittest.TestCase):
@@ -97,6 +97,23 @@ class FarmWorkflows(unittest.TestCase):
         self.assertIn(b"27 &deg;C", response.data)
 
     def test_admin_and_login_limit(self):
+        farmer = self.register("monthly-farmer@example.com")
+        self.add_farm(farmer, "Monthly Farm")
+        self.add_farm(farmer, "Quiet Farm")
+        today = local_today()
+        with self.app.app_context():
+            farm_id = db.session.scalar(db.select(Farm.id).filter_by(name="Monthly Farm"))
+            crop = Crop(farm_id=farm_id, name="Maize", planted_on=today, stage="Seedling", health="Healthy")
+            case = HealthCase(farm_id=farm_id, title="Leaf spot", symptoms="", reported_on=today)
+            db.session.add_all([
+                crop, case,
+                InputLog(farm_id=farm_id, category="Seeds", product="Maize", applied_on=today),
+                IrrigationEntry(farm_id=farm_id, applied_on=today, litres=200),
+            ])
+            db.session.flush()
+            db.session.add(HealthUpdate(case_id=case.id, status="Monitoring", notes="Checked the plot"))
+            db.session.commit()
+        self.assertEqual(farmer.get("/admin").status_code, 403)
         runner = self.app.test_cli_runner()
         command = runner.invoke(args=[
             "create-admin", "--email", "admin@example.com", "--name", "Administrator",
@@ -106,8 +123,14 @@ class FarmWorkflows(unittest.TestCase):
         self.assertEqual(self.submit(client, "/login", {
             "email": "admin@example.com", "password": "test-password-1234", "role": "admin",
         }).status_code, 303)
-        self.assertIn(b"Recently registered farmers", client.get("/admin").data)
-        self.assertIn(b"Crop disease scanner", client.get("/admin").data)
+        admin_page = client.get("/admin").data
+        self.assertIn(b"Recently registered farmers", admin_page)
+        self.assertIn(b'method="get" action="/diseases/diagnose"', admin_page)
+        self.assertIn(b"Crop disease scanner", admin_page)
+        self.assertIn(b"Farmer: monthly-farmer@example.com", admin_page)
+        month = today.strftime("%b %Y")
+        self.assertIn(f"Monthly Farm in {month}: 5 recorded activities".encode(), admin_page)
+        self.assertIn(f"Quiet Farm in {month}: 0 recorded activities".encode(), admin_page)
         self.assertIn(b'capture="environment"', client.get("/diseases/diagnose").data)
         self.assertEqual(client.get("/dashboard").status_code, 403)
         self.assertEqual(client.get("/healthz").json, {"status": "ok"})

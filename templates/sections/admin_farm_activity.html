@@ -1,0 +1,38 @@
+<div class="section-heading">
+  <div>
+    <h2>Monthly farm progress</h2>
+    <p class="muted">Dated farm activity over the last six months. All graphs use the same scale.</p>
+  </div>
+</div>
+{% for chart in charts %}
+<article class="content-card">
+  <div class="activity-heading">
+    <h3>{{ chart.farm }}</h3>
+    <span class="muted">Farmer: {{ chart.farmer }}</span>
+  </div>
+  <div class="activity-chart">
+    {% for row in chart.months %}
+    <div class="activity-month">
+      <span>{{ row.month }}</span>
+      <meter min="0" max="{{ activity_max }}" value="{{ row.total }}" aria-label="{{ chart.farm }} in {{ row.month }}: {{ row.total }} recorded activities"></meter>
+      <strong>{{ row.total }}</strong>
+    </div>
+    {% endfor %}
+  </div>
+  <details>
+    <summary>Monthly breakdown</summary>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th scope="col">Month</th>{% for label in activity_labels %}<th scope="col">{{ label }}</th>{% endfor %}</tr></thead>
+        <tbody>
+        {% for row in chart.months %}
+          <tr><th scope="row">{{ row.month }}</th>{% for value in row["values"] %}<td>{{ value }}</td>{% endfor %}</tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</article>
+{% else %}
+<div class="empty-state small-empty">No farm records yet.</div>
+{% endfor %}

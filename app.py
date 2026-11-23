@@ -16,6 +16,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from farms import farms
 from models import Crop, Farm, HealthCase, User, db
 from original_workflows import case_rows
+from admin_activity import ACTIVITY_LABELS, farm_activity
 from farmer_tools import tools as farmer_tools
 from request_limits import permit_request
 
@@ -173,7 +174,9 @@ def create_app(config=None):
         }
         recent = db.session.execute(db.select(User.name.label("full_name"), User.email, User.created_at)
                                     .where(User.is_admin.is_(False)).order_by(User.id.desc()).limit(12)).all()
-        return render_template("admin.html", stats=counts, recent=recent, cases=case_rows(limit=10))
+        charts, activity_max = farm_activity()
+        return render_template("admin.html", stats=counts, recent=recent, cases=case_rows(limit=10),
+                               charts=charts, activity_max=activity_max, activity_labels=ACTIVITY_LABELS)
 
     @app.cli.command("create-admin")
     @click.option("--email", prompt=True)

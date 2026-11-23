@@ -5,6 +5,7 @@
   <title>{% block title %}AI Smart Farming{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='agrisense') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='mobile.css', v='1') }}">
+  {% block extra_head %}{% endblock %}
 </head>
 <body>
 {% if g.user and not standalone %}
